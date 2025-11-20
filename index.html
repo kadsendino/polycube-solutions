@@ -581,6 +581,7 @@
 
                 entry.addEventListener("click", () => loadSolutionFromServer(file));
                 solutionListDiv.appendChild(entry);
+                console.log(entry.textContent)
             });
 
         } catch (err) {
