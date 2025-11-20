@@ -542,7 +542,7 @@
 
     btnLoadSolutions.addEventListener("click", async () => {
         try {
-            const res = await fetch("/StudiumFU/SWP_Polycubes/solutions/index.json");
+            const res = await fetch("https://kadsendino.github.io/polycube-solutions/solutions/index.json");
 
             if (!res.ok) {
                 solutionListDiv.textContent = "Fehler: index.json nicht gefunden.";
@@ -569,7 +569,7 @@
 
     async function loadSolutionFromServer(filename) {
         try {
-            const res = await fetch("/StudiumFU/SWP_Polycubes/solutions/" + filename);
+            const res = await fetch("https://kadsendino.github.io/polycube-solutions/solutions/" + filename);
 
             if (!res.ok) {
                 alert("Fehler beim Laden: " + filename);
