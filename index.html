@@ -266,7 +266,7 @@
     const unitGeom = new THREE.BoxGeometry(1,1,1);
     let highlightMesh = null;
 
-    function keyFor(x,y,z){return `${x},${y},${z}`}
+    function keyFor(id,x,y,z){return `${id},${x},${y},${z}`}
 
     const collisionCubes = new Set(); // Würfel, die gerade pulsieren
     let pulseTime = 0;
@@ -328,13 +328,13 @@
       updateCameraTarget();
     }
 
-    function addCube(x,y,z,color){
+    function addCube(id,x,y,z,color){
         x = Math.floor(x); y = Math.floor(y); z = Math.floor(z);
         if(x<0||y<0||z<0||x>=dims.a||y>=dims.b||z>=dims.c){
             console.warn('Koordinaten außerhalb der Dimensionen');
             return null;
         }
-        const k = keyFor(x,y,z);
+        const k = keyFor(id,x,y,z);
         if(cubeMap.has(k)) {
             if(collisions.some(c => c.x === x && c.y === y && c.z === z) == false){                
                 collisions.push({x,y,z});
@@ -358,6 +358,8 @@
         const cubes = Array.from(cubeMap.values())
             .map(mesh => mesh.userData.pos)
             .sort((a,b) => (a.x-b.x) || (a.y-b.y) || (a.z-b.z));
+
+        console.log(cubes);
 
         if(cubes.length === 0){
             cubeListDiv.innerHTML = 'Würfel: -';
@@ -678,11 +680,36 @@
             setDimensions(a,b,c);
             blinkButton();
 
+            const color_dict = new Map();
+            const GOLDEN_ANGLE = 137.508;
+
+            //Hilfsfunktion umwandeln des Farbstrings aus hue
+            const hsl = (h, s, l) => `hsl(${h}, ${s}%, ${l}%)`;
+
             // Würfel hinzufügen mit Kollisionsprüfung
             for (let i = 1; i < arr.length; i++) {
-                const [x,y,z,color] = arr[i];
+                let a,b,c,d;
+                [a,b,c,d] = arr[i];
+
+                let id,x,y,z,color;
+
+                if(typeof d === 'string' || d instanceof String){
+                    [x,y,z,color] = [a,b,c,d];
+                    id = 0;
+                }else{
+                    [id,x,y,z] = [a,b,c,d];
+
+                    if(color_dict.has(id)){
+                        color = color_dict.get(id);
+                    }else{
+                        const dict_size = color_dict.size;
+                        const hue = (dict_size * GOLDEN_ANGLE) % 360;
+                        color = hsl(hue, 70, 50);
+                        color_dict.set(id, color);
+                    }
+                }
                 const k = keyFor(x,y,z);
-                addCube(x,y,z,color);
+                addCube(id,x,y,z,color);
             }
             logCollisions(collisions);
 
