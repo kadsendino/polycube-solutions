@@ -120,6 +120,7 @@
     </div>
 
     <div id="canvas-wrap">
+
       <div id="info">Drehen (Linksklick) / Zoomen / Verschieben (Rechtsklick)</div>
       <div id="cubeCoords" style="position:absolute;top:12px;right:12px;padding:6px;background:rgba(0,0,0,0.5);color:#fff;border-radius:6px;font-size:13px;">
         Würfel: (x,y,z)
@@ -184,6 +185,17 @@
       <canvas id="c"></canvas>
     </div>
   </div>
+
+  <script type="importmap">
+    {
+    "imports": {
+        "three": "https://unpkg.com/three@0.155.0/build/three.module.js",
+        "three/examples/jsm/controls/OrbitControls.js": "https://unpkg.com/three@0.155.0/examples/jsm/controls/OrbitControls.js",
+        "three/examples/jsm/loaders/FontLoader.js": "https://unpkg.com/three@0.155.0/examples/jsm/loaders/FontLoader.js",
+        "three/examples/jsm/geometries/TextGeometry.js": "https://unpkg.com/three@0.155.0/examples/jsm/geometries/TextGeometry.js"
+    }
+    }
+  </script>
 
   <script type="module">
     import * as THREE from "three";
@@ -775,6 +787,48 @@
 
     window.addEventListener('resize', resize);
 
+    import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
+    import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
+
+
+
+    // Array aller Achsen-Text-Meshes
+    const axisTexts = [];
+
+    // Beim Erstellen der Texte
+    function addAxisLabels(dims, offset = 0.5) {
+        const loader = new FontLoader();
+        loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', font => {
+            const textSize = 0.4;
+            const textHeight = 0.05;
+
+            const createText = (char, color, pos) => {
+                const geo = new TextGeometry(char, { font, size: textSize, height: textHeight });
+                const mat = new THREE.MeshBasicMaterial({ color });
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.copy(pos);
+                scene.add(mesh);
+                axisTexts.push(mesh);  // für Billboard-Effekt merken
+                return mesh;
+            };
+
+            // Ursprung
+            createText('X', 0xff0000, new THREE.Vector3(2*offset, 0, -offset));
+            createText('Y', 0x00ff00, new THREE.Vector3(-offset, 2*offset, -offset));
+            createText('Z', 0x0000ff, new THREE.Vector3(-offset, 0, 2*offset));
+
+            // Maximal-Ecke
+            createText('X', 0xff0000, new THREE.Vector3(dims.a + offset, 0, -offset));
+            createText('Y', 0x00ff00, new THREE.Vector3(-offset, dims.b + offset, -offset));
+            createText('Z', 0x0000ff, new THREE.Vector3(-offset, 0, dims.c + offset));
+        });
+    }
+
+    addAxisLabels(dims, 0.5);
+
+
+
+
     function animate(){
         requestAnimationFrame(animate);
 
@@ -799,6 +853,8 @@
             collisionLogDiv.style.borderColor = 'rgba(255,0,0,0)';
             collisionLogDiv.style.boxShadow = 'none';
         }
+
+        axisTexts.forEach(t => t.lookAt(camera.position));
 
         renderer.render(scene, camera);
     }
