@@ -1,0 +1,778 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SWP Polycubes</title>
+  <style>
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial}
+    #app{display:grid;grid-template-columns:320px 1fr;height:100vh}
+    #ui{padding:12px;background:#111;color:#eee;overflow:auto}
+    label{display:block;margin-top:8px;font-size:13px}
+    input[type=number], input[type=color], select, button, textarea{width:100%;box-sizing:border-box;padding:6px;margin-top:6px;border-radius:6px;border:1px solid #333;background:#222;color:#eee}
+    button{cursor:pointer}
+    #canvas-wrap{position:relative;background:#222}
+    #c {width:100%; height:100%; display:block;}
+    #info{position:absolute;left:12px;top:12px;padding:8px;background:rgba(0,0,0,0.45);color:#fff;border-radius:6px;font-size:13px}
+    .small{font-size:12px;color:#bbb}
+    .row{display:flex;gap:8px}
+    .row > *{flex:1}
+    .hint{margin-top:8px;font-size:12px;color:#9aa}
+
+    .blink-green {
+      animation: blink-green 1s ease 0s infinite;
+    }
+
+    @keyframes blink-green {
+      0%   { border-color: #00ff00; box-shadow: 0 0 8px #00ff00; }
+      50%  { border-color: #ffffff; box-shadow: none; }
+      100% { border-color: #00ff00; box-shadow: 0 0 8px #00ff00; }
+    }
+  </style>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.155.0/build/three.module.js",
+      "three/examples/jsm/controls/OrbitControls.js": "https://unpkg.com/three@0.155.0/examples/jsm/controls/OrbitControls.js"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="app">
+    <div id="ui">
+      <h3>Cube-Visualizer</h3>
+
+      <hr style="border:none;border-top:1px solid #222;margin:10px 0">
+
+      <div class="small">Linksklick auf Würfel - Hervorheben.</div>
+      <div class="small">Rechtsklick auf Würfel - Entfernen.</div>
+      <div class="small">
+        <font style="color: green">
+            <ul>
+              <li><b>#Update 06.11.2025:</b></li>
+              <li>WASD/QE-Steuerung implementiert</li>
+              <li>Kamera-Anker manuell setzbar</li>
+              <li>Kamera-Anker automatisiert setzbar</li>
+            </ul>
+        </font>
+      </div>
+
+      <hr style="border:none;border-top:1px solid #222;margin:10px 0">
+
+      <label>Array importieren</label>
+      <textarea id="arrayInput" rows="6">[[8,8,8],[0,0,0,"#ffffff"]]</textarea>
+      <button id="btnLoadArray">Array laden</button>
+
+      <hr style="border:none;border-top:1px solid #222;margin:10px 0">
+      <button id="btnMakeTransparent">Alle Würfel durchsichtig</button>
+      <button id="btnResetOpacity">Normal anzeigen</button>
+
+      <hr style="border:none;border-top:1px solid #222;margin:10px 0">
+      <label for="yThreshold">Y-Schwelle (ab hier Würfel unsichtbar):</label>
+      <input id="yThreshold" type="number" min="0" value="4" />
+      <button style="width: 31%; display: inline-block" id="btnHideMinus">-</button>
+      <button style="width: 31%; display: inline-block" id="btnHideAboveY">Set</button>
+      <button style="width: 31%; display: inline-block" id="btnHidePlus">+</button>
+      <button id="btnRestoreVisibility">Wiederherstellen</button>
+
+      <hr style="border:none;border-top:1px solid #222;margin:10px 0">
+      <label><b>Kamera-Anker (x, y, z)</b></label>
+      <div class="row">
+        <input id="camX" type="number" value="4" />
+        <input id="camY" type="number" value="4" />
+        <input id="camZ" type="number" value="4" />
+      </div>
+      <button id="btnSetCamTarget">Anker setzen</button>
+      <button id="btnAutoCamTarget">Anker automatisiert ermitteln</button>
+
+      <hr style="border:none;border-top:1px solid #222;margin:10px 0">
+
+      <label>Würfel hinzufügen (ganzzahlige Koordinaten)</label>
+      <div class="row">
+        <input id="cx" type="number" value="0" />
+        <input id="cy" type="number" value="0" />
+        <input id="cz" type="number" value="0" />
+      </div>
+      <label>Farbe</label>
+      <input id="color" type="color" value="#ff7755" />
+      <button id="btnAdd">Würfel hinzufügen</button>
+      <button id="btnClear">Alle Würfel entfernen</button>
+
+      
+      <hr style="border:none;border-top:1px solid #222;margin:10px 0">
+
+      <label>Dimensionen (a × b × c)</label>
+      <div class="row">
+        <input id="dimA" type="number" min="1" value="8" />
+        <input id="dimB" type="number" min="1" value="8" />
+        <input id="dimC" type="number" min="1" value="8" />
+      </div>
+      <button id="btnCreate">Gitter erstellen / zurücksetzen</button>
+    </div>
+
+    <div id="canvas-wrap">
+      <div id="info">Drehen (Linksklick) / Zoomen / Verschieben (Rechtsklick)</div>
+      <div id="cubeCoords" style="position:absolute;top:12px;right:12px;padding:6px;background:rgba(0,0,0,0.5);color:#fff;border-radius:6px;font-size:13px;">
+        Würfel: (x,y,z)
+      </div>
+      <div id="collisionLog" style="
+        position:absolute;
+        bottom:12px;
+        left:12px;
+        padding:6px;
+        background:rgba(0,0,0,0.5);
+        color:#ff5555;
+        border-radius:6px;
+        font-size:13px;
+        max-height:150px;
+        overflow:auto;
+        border:2px solid rgba(255,0,0,0); /* start transparent */
+        box-sizing:border-box;">
+        Kollisionen: -
+      </div>
+
+      <div id="cubeList" style="
+        position:absolute;
+        width: auto;
+        bottom:12px;
+        right:12px;
+        padding:10px;
+        background:rgba(0,0,0,0.5);
+        color:#fff;
+        border-radius:6px;
+        font-size:13px;
+        max-height:200px;
+        overflow:auto;">
+        Würfel: -
+      </div>
+
+
+
+      <canvas id="c"></canvas>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as THREE from "three";
+    import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+
+    const canvas = document.querySelector('#c');
+    const btnCreate = document.querySelector('#btnCreate');
+    const btnAdd = document.querySelector('#btnAdd');
+    const btnClear = document.querySelector('#btnClear');
+    const dimAInput = document.querySelector('#dimA');
+    const dimBInput = document.querySelector('#dimB');
+    const dimCInput = document.querySelector('#dimC');
+    const cxInput = document.querySelector('#cx');
+    const cyInput = document.querySelector('#cy');
+    const czInput = document.querySelector('#cz');
+    const colorInput = document.querySelector('#color');
+    const arrayInput = document.querySelector('#arrayInput');
+    const btnLoadArray = document.querySelector('#btnLoadArray');
+    const cubeCoordsDiv = document.getElementById('cubeCoords');
+    const collisionLogDiv = document.getElementById('collisionLog');
+    const cubeListDiv = document.getElementById('cubeList');
+
+    let collisions = []; // global
+
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x1b1b1b);
+
+    const camera = new THREE.PerspectiveCamera(60, 2, 0.1, 1000);
+    camera.position.set(10, 10, 14);
+
+    const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+    renderer.setPixelRatio(window.devicePixelRatio);
+
+    const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
+    scene.add(hemi);
+    const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+    dir.position.set(5,10,7);
+    scene.add(dir);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+
+    // ---- WASD + QE Bewegung ----
+    const moveSpeed = 0.2;
+    const keys = { w:false, a:false, s:false, d:false, q:false, e:false };
+
+    window.addEventListener('keydown', (e) => {
+        if(e.key.toLowerCase() in keys) keys[e.key.toLowerCase()] = true;
+    });
+
+    window.addEventListener('keyup', (e) => {
+        if(e.key.toLowerCase() in keys) keys[e.key.toLowerCase()] = false;
+    });
+
+    function updateCameraMovement() {
+      const forward = new THREE.Vector3();
+      camera.getWorldDirection(forward);
+      forward.y = 0;            // Y-Achse ignorieren für Vorwärts/Rückwärts
+      forward.normalize();
+
+      const right = new THREE.Vector3();
+      right.crossVectors(forward, camera.up).normalize(); // seitlich
+
+      if(keys.w) camera.position.addScaledVector(forward, moveSpeed);
+      if(keys.s) camera.position.addScaledVector(forward, -moveSpeed);
+      if(keys.a) camera.position.addScaledVector(right, -moveSpeed);
+      if(keys.d) camera.position.addScaledVector(right, moveSpeed);
+      if(keys.q) camera.position.y += moveSpeed;  // hoch
+      if(keys.e) camera.position.y -= moveSpeed;  // runter
+  }
+
+
+
+    const gridGroup = new THREE.Group();
+    scene.add(gridGroup);
+
+    let dims = {a:8,b:8,c:8};
+    const cubeMap = new Map();
+    const unitGeom = new THREE.BoxGeometry(1,1,1);
+    let highlightMesh = null;
+
+    function keyFor(x,y,z){return `${x},${y},${z}`}
+
+    const collisionCubes = new Set(); // Würfel, die gerade pulsieren
+    let pulseTime = 0;
+
+
+    function logCollisions(collisions) {
+        if (collisions.length === 0) {
+            collisionLogDiv.textContent = 'Kollisionen: keine';
+        } else {
+            collisionLogDiv.innerHTML = 'Kollisionen:<br>' + collisions.map(c => `(${c.x}, ${c.y}, ${c.z})`).join('<br>');
+        }
+    }
+
+    function createGridHelpers(){
+        gridGroup.clear();
+        const {a,b,c} = dims;
+
+        const lineMaterial = new THREE.LineBasicMaterial({color:0x222222});
+
+        const points = (x1,y1,z1,x2,y2,z2) => [new THREE.Vector3(x1,y1,z1), new THREE.Vector3(x2,y2,z2)];
+
+        // Linien in X-Richtung auf der Bodenfläche (y=0)
+        for(let z=0; z<=c; z++){
+            const y = 0;
+            gridGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points(0,y,z, a,y,z)), lineMaterial));
+        }
+
+        // Linien in Z-Richtung auf der Bodenfläche (y=0)
+        for(let x=0; x<=a; x++){
+            const y = 0;
+            gridGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points(x,y,0, x,y,c)), lineMaterial));
+        }
+
+        // Weiße Umrandung des Quaders
+        const borderMaterial = new THREE.LineBasicMaterial({color: 0xffffff, linewidth: 2});
+        const edges = [
+            // Untere Fläche
+            [0,0,0, a,0,0],[a,0,0, a,0,c],[a,0,c,0,0,c],[0,0,c,0,0,0],
+            // Obere Fläche
+            [0,b,0, a,b,0],[a,b,0, a,b,c],[a,b,c,0,b,c],[0,b,c,0,b,0],
+            // Vertikale Kanten
+            [0,0,0,0,b,0],[a,0,0,a,b,0],[a,0,c,a,b,c],[0,0,c,0,b,c]
+        ];
+        for(const e of edges){
+            gridGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points(...e)), borderMaterial));
+        }
+    }
+
+
+    function setDimensions(a,b,c){
+      dims = {a:Math.max(1,Math.floor(a)), b:Math.max(1,Math.floor(b)), c:Math.max(1,Math.floor(c))};
+      for(const k of Array.from(cubeMap.keys())){
+        const [x,y,z] = k.split(',').map(Number);
+        if(x<0||y<0||z<0||x>=dims.a||y>=dims.b||z>=dims.c){
+          removeCube(x,y,z);
+        }
+      }
+      createGridHelpers();
+    }
+
+    function addCube(x,y,z,color){
+        x = Math.floor(x); y = Math.floor(y); z = Math.floor(z);
+        if(x<0||y<0||z<0||x>=dims.a||y>=dims.b||z>=dims.c){
+            console.warn('Koordinaten außerhalb der Dimensionen');
+            return null;
+        }
+        const k = keyFor(x,y,z);
+        if(cubeMap.has(k)) {
+            if(collisions.some(c => c.x === x && c.y === y && c.z === z) == false){                
+                collisions.push({x,y,z});
+            }
+            collisionCubes.add(cubeMap.get(k)); // Würfel zum Pulsieren markieren
+        }
+        logCollisions(collisions);
+        if(cubeMap.has(k)) return null;
+
+        const mat = new THREE.MeshStandardMaterial({color:new THREE.Color(color), roughness:0.5, metalness:0.1, emissive:0x000000});
+        const mesh = new THREE.Mesh(unitGeom, mat);
+        mesh.position.set(x+0.5, y+0.5, z+0.5);
+        mesh.userData.pos = {x,y,z};
+        scene.add(mesh);
+        cubeMap.set(k, mesh);
+        blinkButton();
+        return mesh;
+    }
+
+    function updateCubeList(){
+        const cubes = Array.from(cubeMap.values())
+            .map(mesh => mesh.userData.pos)
+            .sort((a,b) => (a.x-b.x) || (a.y-b.y) || (a.z-b.z));
+
+        if(cubes.length === 0){
+            cubeListDiv.innerHTML = 'Würfel: -';
+            return;
+        }
+
+        cubeListDiv.innerHTML = ''; // reset
+        cubes.forEach(({x,y,z}) => {
+            const entry = document.createElement('div');
+            entry.style.display = 'flex';
+            entry.style.justifyContent = 'space-between';
+            entry.style.alignItems = 'center';
+            entry.style.marginBottom = '2px';
+            
+            const coordSpan = document.createElement('span');
+            coordSpan.textContent = `(${x}, ${y}, ${z})`;
+
+            const delBtn = document.createElement('button');
+            delBtn.textContent = 'X';
+            delBtn.style.marginLeft = '6px';
+            delBtn.style.cursor = 'pointer';
+            delBtn.style.width = '30px';
+            delBtn.onclick = () => {
+                removeCube(x,y,z);
+                updateCubeList(); // Liste aktualisieren
+            };
+
+            entry.appendChild(coordSpan);
+            entry.appendChild(delBtn);
+            cubeListDiv.appendChild(entry);
+        });
+    }
+
+    const rays = [];
+
+    function addRay(start, end, color = 0xffff00) {
+        const material = new THREE.LineBasicMaterial({ color });
+        const points = [new THREE.Vector3(...start), new THREE.Vector3(...end)];
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        const line = new THREE.Line(geometry, material);
+        scene.add(line);
+        rays.push(line); // merken, falls später löschen/animieren
+        return line;
+    }
+
+    function clearRays() {
+        rays.forEach(line => scene.remove(line));
+        rays.length = 0;
+    }
+
+
+
+    function highlightCube(mesh){
+        if(highlightMesh) {
+            highlightMesh.material.emissive.setHex(0x000000);
+        }
+        highlightMesh = mesh;
+        if(highlightMesh) {
+            highlightMesh.material.emissive.setHex(0xff0000);
+            const {x,y,z} = highlightMesh.userData.pos;
+            cubeCoordsDiv.textContent = `Würfel: (${x}, ${y}, ${z})`;
+        } else {
+            cubeCoordsDiv.textContent = 'Würfel: (x,y,z)';
+        }
+    }
+
+
+    function removeCube(x,y,z){
+        const k = keyFor(x,y,z);
+        const m = cubeMap.get(k);
+        if(!m) return;
+        scene.remove(m);
+        cubeMap.delete(k);
+        collisionCubes.delete(m);
+        console.log(collisions);
+        collisions = collisions.filter(c => !(c.x === x && c.y === y && c.z === z));
+        console.log(collisions);
+        logCollisions(collisions);
+        if(highlightMesh === m) highlightMesh = null;
+        updateCubeList(); // Liste aktualisieren
+    }
+
+
+    function clearCubes(){
+        for(const k of Array.from(cubeMap.keys())){
+            const m = cubeMap.get(k);
+            scene.remove(m);
+        }
+        cubeMap.clear();
+        collisionCubes.clear(); // Alle pulsierenden Würfel zurücksetzen
+        collisions.length = 0;
+        logCollisions(collisions);
+        highlightMesh = null;
+    }
+
+    
+    function setAllCubesOpacity(opacity = 0.3) {
+        cubeMap.forEach(mesh => {
+            if(mesh.material) {
+                mesh.material.transparent = true;
+                mesh.material.opacity = opacity;
+                mesh.material.needsUpdate = true;  // zwingt Renderer zum Update
+            }
+        });
+    }
+
+    function resetAllCubesOpacity() {
+        cubeMap.forEach(mesh => {
+            if(mesh.material) {
+                mesh.material.opacity = 1;
+                mesh.material.transparent = false;
+                mesh.material.needsUpdate = true; // zwingt Renderer zum Update
+            }
+        });
+    }
+
+
+    const btnMakeTransparent = document.getElementById('btnMakeTransparent');
+    const btnResetOpacity = document.getElementById('btnResetOpacity');
+
+    btnMakeTransparent.addEventListener('click', () => {
+        setAllCubesOpacity(0.3); // z. B. 30% sichtbar
+    });
+
+    btnResetOpacity.addEventListener('click', () => {
+        resetAllCubesOpacity();
+    });
+
+
+
+    const yThresholdInput = document.getElementById('yThreshold');
+    const btnHideAboveY = document.getElementById('btnHideAboveY');
+    const btnHidePlus = document.getElementById('btnHidePlus');
+    const btnHideMinus = document.getElementById('btnHideMinus');
+    const btnRestoreVisibility = document.getElementById('btnRestoreVisibility');
+
+    // Unsichtbar ab Y
+    btnHideAboveY.addEventListener('click', () => {
+      
+        const yThreshold = parseInt(yThresholdInput.value) || 0;
+        cubeMap.forEach(mesh => {
+            mesh.visible = true;
+            if(mesh.userData.pos.y >= yThreshold) {
+                mesh.visible = false;
+            }
+        });
+    });
+
+    btnHidePlus.addEventListener('click', () => {
+        yThresholdInput.value = parseInt(yThresholdInput.value) + 1
+        cubeMap.forEach(mesh => {
+            mesh.visible = true;
+            if(mesh.userData.pos.y >= yThresholdInput.value) {
+                mesh.visible = false;
+            }
+        });
+    });
+
+    btnHideMinus.addEventListener('click', () => {
+        yThresholdInput.value = parseInt(yThresholdInput.value) - 1
+        cubeMap.forEach(mesh => {
+            mesh.visible = true;
+            if(mesh.userData.pos.y >= yThresholdInput.value) {
+                mesh.visible = false;
+            }
+        });
+    });
+
+    // Wiederherstellen
+    btnRestoreVisibility.addEventListener('click', () => {
+        cubeMap.forEach(mesh => {
+            mesh.visible = true;
+        });
+    });
+
+
+
+    const ray = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+
+    canvas.addEventListener('pointerdown', (e) => {
+        const rect = renderer.domElement.getBoundingClientRect();
+        pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        ray.setFromCamera(pointer, camera);
+
+        const intersects = ray.intersectObjects(Array.from(cubeMap.values()));
+
+        if (intersects.length > 0) {
+            const mesh = intersects[0].object;
+            if (e.button === 0) {
+            // Linksklick → Highlight + Koordinaten
+            highlightCube(mesh);
+            } else if (e.button === 2) {
+            // Rechtsklick → Würfel entfernen
+            const {x, y, z} = mesh.userData.pos;
+            removeCube(x, y, z);
+            }
+        } else {
+            // Klick ins Leere, Highlightment zurücksetzen
+            highlightCube(null);
+        }
+    });
+
+
+    canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+    btnCreate.addEventListener('click', ()=>{
+      const a = parseInt(dimAInput.value||8,10);
+      const b = parseInt(dimBInput.value||6,10);
+      const c = parseInt(dimCInput.value||4,10);
+      setDimensions(a,b,c);
+    });
+
+    btnAdd.addEventListener('click', ()=>{
+        const x = parseInt(cxInput.value||0,10);
+        const y = parseInt(cyInput.value||0,10);
+        const z = parseInt(czInput.value||0,10);
+        const col = colorInput.value || '#ff7755';
+        addCube(x,y,z,col);
+
+        // Liste immer aktualisieren
+        updateCubeList();
+    });
+
+
+    btnClear.addEventListener('click', ()=>{
+        clearCubes();
+        updateCubeList();
+    });
+
+    btnLoadArray.addEventListener('click', () => {
+        try {
+            collisions.length = 0;
+
+            const arr = JSON.parse(arrayInput.value);
+            if (!Array.isArray(arr) || arr.length < 1) throw new Error('Ungültiges Array');
+
+            // Alles löschen
+            clearCubes();
+            clearRays();
+
+            // Dimensionen setzen
+            const [a,b,c] = arr[0];
+            setDimensions(a,b,c);
+            blinkButton();
+
+            const color_dict = new Map();
+            const GOLDEN_ANGLE = 137.508;
+
+            //Hilfsfunktion umwandeln des Farbstrings aus hue
+            const hsl = (h, s, l) => `hsl(${h}, ${s}%, ${l}%)`;
+
+            // Würfel hinzufügen mit Kollisionsprüfung
+            for (let i = 1; i < arr.length; i++) {
+                let a,b,c,d;
+                [a,b,c,d] = arr[i];
+                let item = arr[i];
+
+                let id,x,y,z,color;
+
+                if(item[0] === 'ray') {
+                    const [, start, end, color] = item;
+                    addRay(start, end, color || 0xffff00);
+                    continue; // Strahl behandelt, weiter zum nächsten Eintrag
+                }
+
+                if(typeof d === 'string' || d instanceof String){
+                    [x,y,z,color] = [a,b,c,d];
+                    id = 0;
+                }else{
+                    [id,x,y,z] = [a,b,c,d];
+
+                    if(color_dict.has(id)){
+                        color = color_dict.get(id);
+                    }else{
+                        const dict_size = color_dict.size;
+                        const hue = (dict_size * GOLDEN_ANGLE) % 360;
+                        color = hsl(hue, 70, 50);
+                        color_dict.set(id, color);
+                    }
+                }
+                const k = keyFor(x,y,z);
+                addCube(id,x,y,z,color);
+            }
+            logCollisions(collisions);
+
+            setCameraTargetToCubes();
+
+            // Liste unten rechts aktualisieren
+            updateCubeList();
+
+            console.log(cubeMap.length);
+
+        } catch (e) {
+            alert('Fehler beim Parsen des Arrays: ' + e.message);
+        }
+    });
+
+    //AUTOMATISIERTEN ANKER ERSTELLEN AUF MITTELWERT ALLER CUBES
+    function setCameraTargetToCubes() {
+        if(cubeMap.size === 0) return; // keine Würfel vorhanden
+
+        let sumX = 0, sumY = 0, sumZ = 0;
+        let count = 0;
+
+        cubeMap.forEach(mesh => {
+            const {x, y, z} = mesh.userData.pos;
+            sumX += x + 0.5; // +0.5, da Würfelmitte
+            sumY += y + 0.5;
+            sumZ += z + 0.5;
+            count++;
+        });
+
+        const avgX = sumX / count;
+        const avgY = sumY / count;
+        const avgZ = sumZ / count;
+
+        // Input-Felder aktualisieren
+        camXInput.value = avgX.toFixed(2);
+        camYInput.value = avgY.toFixed(2);
+        camZInput.value = avgZ.toFixed(2);
+
+        // Kameraanker setzen
+        setCameraTarget(avgX, avgY, avgZ);
+        blinkButtonRemove();
+    }
+
+    const btnAutoCamTarget = document.getElementById('btnAutoCamTarget');
+    btnAutoCamTarget.addEventListener('click', setCameraTargetToCubes);
+
+    //Automatisches Blinken bei Array Load für Ankersetzung
+    function blinkButton() {
+        document.getElementById('btnAutoCamTarget').classList.add('blink-green');
+    }
+    function blinkButtonRemove() {
+        document.getElementById('btnAutoCamTarget').classList.remove('blink-green'); // Animation entfernen
+    }
+
+
+    function resize(){
+      const wrap = document.getElementById('canvas-wrap');
+      const w = wrap.clientWidth;
+      const h = wrap.clientHeight;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    }
+
+    window.addEventListener('resize', resize);
+
+    function animate(){
+        requestAnimationFrame(animate);
+
+
+        updateCameraMovement();  // Bewegung vor OrbitControls
+        controls.update();
+
+        // Pulsierendes Licht für Kollisionen
+        if(collisionCubes.size > 0){
+            pulseTime += 0.05; // Geschwindigkeit
+            const intensity = Math.abs(Math.sin(pulseTime)) * 1.5; 
+
+            collisionCubes.forEach(mesh => {
+                if (mesh.material) mesh.material.emissive.setRGB(intensity, 0, 0);
+            });
+
+            // Pulsierenden Rand für das Kollisionsfenster
+            const alpha = Math.abs(Math.sin(pulseTime)); // 0-1
+            collisionLogDiv.style.borderColor = `rgba(255,0,0,${alpha})`;
+            collisionLogDiv.style.boxShadow = `0 0 8px rgba(255,0,0,${alpha*0.5})`;
+        } else {
+            collisionLogDiv.style.borderColor = 'rgba(255,0,0,0)';
+            collisionLogDiv.style.boxShadow = 'none';
+        }
+
+        renderer.render(scene, camera);
+    }
+
+
+    function updateCameraTarget() {
+        const centerX = dims.a / 2;
+        const centerY = dims.b / 2;
+        const centerZ = dims.c / 2;
+        controls.target.set(centerX, centerY, centerZ);
+        controls.update();
+    }
+
+    const camXInput = document.getElementById('camX');
+    const camYInput = document.getElementById('camY');
+    const camZInput = document.getElementById('camZ');
+    const btnSetCamTarget = document.getElementById('btnSetCamTarget');
+
+    function setCameraTarget(x, y, z) {
+        controls.target.set(x, y, z);
+        controls.update();
+    }
+
+    btnSetCamTarget.addEventListener('click', () => {
+        const x = parseFloat(camXInput.value) || 0;
+        const y = parseFloat(camYInput.value) || 0;
+        const z = parseFloat(camZInput.value) || 0;
+        setCameraTarget(x, y, z);
+    });
+
+    [camXInput, camYInput, camZInput].forEach(input => {
+        input.addEventListener('input', () => {
+            const x = parseFloat(camXInput.value) || 0;
+            const y = parseFloat(camYInput.value) || 0;
+            const z = parseFloat(camZInput.value) || 0;
+            setCameraTarget(x, y, z);
+        });
+    });
+
+
+    // --- Automatisches Laden von grid_output.json jede Sekunde ---
+    setInterval(async () => {
+        try {
+            const response = await fetch('grid_output.json', {cache: "no-store"});
+            if (!response.ok) throw new Error('Datei konnte nicht geladen werden');
+
+            const arr = await response.json();
+
+            if (!Array.isArray(arr) || arr.length < 1) return;
+
+            // Array ins Textfeld setzen
+            arrayInput.value = JSON.stringify(arr);
+
+            // Button "Array laden" auslösen
+            btnLoadArray.click();
+        } catch (e) {
+            console.warn('Fehler beim automatischen Laden:', e.message);
+        }
+    }, 1000);
+
+
+
+
+    setDimensions(dims.a, dims.b, dims.c);
+    updateCameraTarget();
+    resize();
+    animate();
+
+    window.addCube = addCube;
+    window.removeCube = removeCube;
+    window.clearCubes = clearCubes;
+    window.setDimensions = setDimensions;
+  </script>
+</body>
+</html>
