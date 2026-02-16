@@ -1,5 +1,10 @@
 # Polycube Solutions
 
+## Usage of Files
+1) index.html -> Main Web Page
+2) localvisualizer.html -> supports live visualization on local host fetching periodically from grid_output.json
+3) localvis_2.html -> same as 2) but additional support for input format [x,y,z,cube_id]
+
 ## Website
 https://kadsendino.github.io/polycube-solutions/
 
