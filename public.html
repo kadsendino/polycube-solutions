@@ -1,0 +1,1290 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Polycubes — Projektseite</title>
+
+  <style>
+    :root{
+      --bg:#060606;
+      --bg-soft:#101010;
+      --panel:rgba(255,255,255,0.05);
+      --panel-2:rgba(255,255,255,0.08);
+      --border:rgba(255,255,255,0.11);
+      --border-strong:rgba(255,255,255,0.18);
+      --text:#f5f5f5;
+      --muted:#b8b8b8;
+      --muted-2:#8f8f8f;
+      --shadow:0 20px 60px rgba(0,0,0,.28);
+      --radius:24px;
+      --radius-sm:18px;
+      --max:1280px;
+      --nav-h:76px;
+      --nav-pad:12px;
+      --slide-gap:152px;
+      --ease:cubic-bezier(.22,1,.36,1);
+    }
+
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      color:var(--text);
+      font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+      font-size:14px;
+      background:
+        radial-gradient(circle at 10% 10%, rgba(255,255,255,.08), transparent 24%),
+        radial-gradient(circle at 85% 14%, rgba(255,255,255,.06), transparent 22%),
+        linear-gradient(180deg,#050505 0%,#0a0a0a 45%,#050505 100%);
+      overflow-x:hidden;
+      -webkit-font-smoothing:antialiased;
+      text-rendering:optimizeLegibility;
+    }
+
+    a{color:inherit}
+    button{font:inherit}
+
+    .bg-grid,
+    .bg-glow,
+    .bg-noise{
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      z-index:-3;
+    }
+
+    .bg-grid{
+      background-image:
+        linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+      background-size:44px 44px;
+      mask-image:linear-gradient(to bottom, rgba(0,0,0,.22), rgba(0,0,0,.96));
+      opacity:.5;
+    }
+
+    .bg-glow{
+      z-index:-2;
+      background:
+        radial-gradient(circle at 12% 8%, rgba(255,255,255,.10), transparent 22%),
+        radial-gradient(circle at 88% 12%, rgba(255,255,255,.06), transparent 20%),
+        radial-gradient(circle at 50% 50%, rgba(255,255,255,.04), transparent 28%);
+      filter:blur(28px);
+      animation:ambientDrift 16s ease-in-out infinite alternate;
+    }
+
+    .bg-noise{
+      z-index:-1;
+      opacity:.03;
+      background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 180 180"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="2" stitchTiles="stitch"/></filter><rect width="180" height="180" filter="url(%23n)"/></svg>');
+      mix-blend-mode:soft-light;
+    }
+
+    .container{
+      width:min(calc(100% - 48px), var(--max));
+      margin:0 auto;
+    }
+
+    .topbar{
+      position:sticky;
+      top:0;
+      z-index:50;
+      padding:var(--nav-pad) 0 10px;
+      background:linear-gradient(to bottom, rgba(6,6,6,.9), rgba(6,6,6,.28));
+      backdrop-filter:saturate(1.1) blur(10px);
+    }
+
+    .topbar-inner{
+      width:min(calc(100% - 48px), var(--max));
+      margin:0 auto;
+      min-height:var(--nav-h);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:18px;
+      padding:10px 14px;
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:999px;
+      background:rgba(7,7,7,.985);
+      backdrop-filter:blur(28px);
+      box-shadow:0 20px 50px rgba(0,0,0,.42);
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      font-weight:700;
+      letter-spacing:.02em;
+      white-space:nowrap;
+      font-size:.9rem;
+    }
+
+    .brand-mark{
+      width:12px;
+      height:12px;
+      border-radius:4px;
+      background:#fff;
+      box-shadow:0 0 16px rgba(255,255,255,.35);
+    }
+
+    .nav-links{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .nav-link{
+      border:1px solid transparent;
+      background:transparent;
+      color:var(--muted);
+      text-decoration:none;
+      padding:8px 13px;
+      font-size:.86rem;
+      border-radius:999px;
+      transition:all .35s var(--ease);
+      cursor:pointer;
+    }
+
+    .nav-link:hover,
+    .nav-link.active{
+      color:#fff;
+      background:rgba(255,255,255,.08);
+      border-color:rgba(255,255,255,.12);
+      transform:translateY(-1px);
+    }
+
+    main{
+      padding-bottom:64px;
+    }
+
+    .section-label{
+      margin:0 0 10px;
+      color:var(--muted-2);
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.14em;
+    }
+
+    .slider-section{
+      padding:4px 0 22px;
+      scroll-margin-top:128px;
+    }
+
+    .slider-shell{
+      position:relative;
+      border:1px solid var(--border);
+      border-radius:28px;
+      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.025));
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      height:calc(100vh - var(--slide-gap));
+      min-height:540px;
+      max-height:calc(100vh - var(--slide-gap));
+    }
+
+    .slides-track{
+      display:flex;
+      width:300%;
+      height:100%;
+      transition:transform .85s var(--ease);
+      will-change:transform;
+    }
+
+    .slide{
+      width:calc(100% / 3);
+      height:100%;
+      min-height:0;
+      padding:24px 30px 30px;
+      display:flex;
+      align-items:flex-start;
+      overflow-y:auto;
+      overscroll-behavior:contain;
+      scrollbar-gutter:stable both-edges;
+      scrollbar-width:thin;
+      scrollbar-color:rgba(255,255,255,.14) transparent;
+    }
+
+    .slide-inner{
+      width:min(100%, 980px);
+      margin:0 auto;
+      display:flex;
+      flex-direction:column;
+      justify-content:flex-start;
+      align-self:flex-start;
+    }
+
+    .section-title{
+      margin:0 0 10px;
+      font-size:clamp(1.45rem, 2.7vw, 2.3rem);
+      line-height:1.05;
+      letter-spacing:-.04em;
+    }
+
+    .section-lead{
+      margin:0 0 18px;
+      max-width:64ch;
+      color:var(--muted);
+      line-height:1.66;
+      font-size:.9rem;
+    }
+
+    .content-card{
+      border:1px solid var(--border);
+      background:var(--panel);
+      border-radius:20px;
+      padding:22px;
+      backdrop-filter:blur(12px);
+    }
+
+    .editable-block{
+      line-height:1.68;
+      color:var(--muted);
+      font-size:.9rem;
+    }
+
+    .editable-block h3,
+    .editable-block h4{
+      color:#fff;
+      margin:24px 0 10px;
+      line-height:1.2;
+      letter-spacing:-.03em;
+    }
+
+    .editable-block h3{font-size:1.12rem}
+    .editable-block h4{font-size:.95rem}
+    .editable-block p{margin:0 0 14px}
+    .editable-block code{
+      font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+      font-size:.95em;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.08);
+      padding:.12em .36em;
+      border-radius:8px;
+      color:#fff;
+    }
+
+    .editable-note{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      margin-bottom:16px;
+      padding:8px 11px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.05);
+      color:#dcdcdc;
+      font-size:11px;
+      letter-spacing:.11em;
+      text-transform:uppercase;
+    }
+
+    .team-grid{
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0, 1fr));
+      gap:14px;
+      margin-top:10px;
+    }
+
+    .team-card{
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.045);
+      border-radius:20px;
+      padding:16px;
+      transition:transform .35s var(--ease), border-color .35s var(--ease), background .35s var(--ease);
+      backdrop-filter:blur(10px);
+    }
+
+    .team-card:hover{
+      transform:translateY(-3px);
+      border-color:var(--border-strong);
+      background:rgba(255,255,255,.06);
+    }
+
+    .team-photo{
+      width:100%;
+      aspect-ratio:1.12/1;
+      border-radius:16px;
+      margin-bottom:14px;
+      border:1px solid rgba(255,255,255,.08);
+      background:
+        radial-gradient(circle at 30% 24%, rgba(255,255,255,.18), transparent 22%),
+        linear-gradient(145deg, rgba(255,255,255,.12), rgba(255,255,255,.04));
+      display:grid;
+      place-items:center;
+      color:#fff;
+      font-size:1.7rem;
+      font-weight:700;
+      letter-spacing:-.04em;
+    }
+
+    .team-name{
+      margin:0 0 6px;
+      font-size:.95rem;
+      letter-spacing:-.02em;
+    }
+
+    .team-role{
+      margin:0;
+      color:var(--muted);
+      font-size:.84rem;
+      line-height:1.6;
+    }
+
+    .dot-nav{
+      display:flex;
+      justify-content:center;
+      gap:10px;
+      padding:0 0 10px;
+      margin-top:-4px;
+    }
+
+    .dot-nav button{
+      width:10px;
+      height:10px;
+      border:none;
+      border-radius:999px;
+      background:rgba(255,255,255,.22);
+      cursor:pointer;
+      transition:transform .3s var(--ease), background .3s var(--ease), width .3s var(--ease);
+    }
+
+    .dot-nav button.active{
+      width:30px;
+      background:#fff;
+      transform:scale(1.02);
+    }
+
+    .viewer-section{
+      padding:42px 0 22px;
+    }
+
+    .viewer-intro{
+      width:min(100%, 900px);
+      margin:0 auto 22px;
+      text-align:center;
+    }
+
+    .viewer-intro h2{
+      margin:0 0 12px;
+      font-size:clamp(1.65rem, 3vw, 2.45rem);
+      letter-spacing:-.045em;
+    }
+
+    .viewer-intro p{
+      margin:0;
+      color:var(--muted);
+      line-height:1.66;
+      font-size:.9rem;
+    }
+
+    .viewer-shell{
+      border:1px solid var(--border);
+      border-radius:28px;
+      overflow:hidden;
+      background:#111;
+      box-shadow:var(--shadow);
+    }
+
+    #visualizerApp{
+      display:grid;
+      grid-template-columns:320px 1fr;
+      min-height:820px;
+    }
+
+    #viewerUi{
+      padding:16px;
+      background:#111;
+      color:#eee;
+      overflow:auto;
+      border-right:1px solid rgba(255,255,255,.07);
+      scrollbar-width:thin;
+      scrollbar-color:rgba(255,255,255,.12) transparent;
+    }
+
+    #viewerUi h3{
+      margin:0 0 10px;
+      font-size:1.15rem;
+      letter-spacing:-.03em;
+    }
+
+    #viewerUi .small{
+      font-size:11px;
+      color:#bbb;
+      line-height:1.5;
+    }
+
+    #viewerUi button,
+    #viewerUi .solution-entry{
+      width:100%;
+      box-sizing:border-box;
+      padding:11px 13px;
+      margin-top:10px;
+      border-radius:12px;
+      border:1px solid #333;
+      background:#1a1a1a;
+      color:#eee;
+      transition:background .2s ease, transform .2s ease, border-color .2s ease;
+      font:inherit;
+      font-size:.9rem;
+    }
+
+    #viewerUi button:hover,
+    #viewerUi .solution-entry:hover{
+      background:#232323;
+      border-color:#4f4f4f;
+      transform:translateY(-1px);
+      cursor:pointer;
+    }
+
+    #viewerUi hr{
+      border:none;
+      border-top:1px solid #222;
+      margin:14px 0;
+    }
+
+    #solutionList{
+      margin-top:8px;
+      max-height:560px;
+      overflow:auto;
+      padding-right:4px;
+      scrollbar-width:thin;
+      scrollbar-color:rgba(255,255,255,.12) transparent;
+    }
+
+    #solutionList .solution-entry.active{
+      border-color:#fff;
+      background:#282828;
+      box-shadow:0 0 0 1px rgba(255,255,255,.22) inset;
+    }
+
+    #solutionStatus{
+      margin-top:12px;
+      padding:11px 13px;
+      border-radius:12px;
+      background:#181818;
+      border:1px solid #2b2b2b;
+      color:#cfcfcf;
+      font-size:12px;
+      line-height:1.55;
+    }
+
+    #canvas-wrap{
+      position:relative;
+      background:#222;
+      min-height:820px;
+    }
+
+    #c{width:100%;height:100%;display:block}
+
+    .viewer-overlay{
+      position:absolute;
+      padding:8px 10px;
+      background:rgba(0,0,0,.5);
+      color:#fff;
+      border-radius:8px;
+      font-size:12px;
+      backdrop-filter:blur(6px);
+    }
+
+    #info{left:12px;top:12px}
+    #cubeCoords{top:12px;right:12px}
+
+    #cubeList{
+      position:absolute;
+      width:auto;
+      top:50px;
+      right:12px;
+      padding:10px;
+      background:rgba(0,0,0,.5);
+      color:#fff;
+      border-radius:6px;
+      font-size:12px;
+      max-height:200px;
+      overflow:auto;
+    }
+
+    #license{
+      position:absolute;
+      width:260px;
+      bottom:12px;
+      right:12px;
+      padding:10px;
+      background:rgba(0,0,0,.5);
+      color:#fff;
+      border-radius:6px;
+      font-size:12px;
+      max-height:230px;
+      overflow:auto;
+    }
+
+    #license a{color:#fff}
+
+    footer{
+      padding:24px 0 50px;
+    }
+
+    .footer-card{
+      border:1px solid var(--border);
+      border-radius:22px;
+      background:rgba(255,255,255,.045);
+      backdrop-filter:blur(10px);
+      box-shadow:var(--shadow);
+      padding:20px 22px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:14px;
+    }
+
+    .footer-card p{
+      margin:0;
+      color:var(--muted);
+      line-height:1.65;
+      font-size:.88rem;
+    }
+
+    .footer-links{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .footer-links a{
+      text-decoration:none;
+      padding:9px 13px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.04);
+      font-size:.85rem;
+    }
+
+    .slide::-webkit-scrollbar,
+    #solutionList::-webkit-scrollbar,
+    #viewerUi::-webkit-scrollbar{
+      width:9px;
+      height:9px;
+    }
+
+    .slide::-webkit-scrollbar-track,
+    #solutionList::-webkit-scrollbar-track,
+    #viewerUi::-webkit-scrollbar-track{
+      background:transparent;
+    }
+
+    .slide::-webkit-scrollbar-thumb,
+    #solutionList::-webkit-scrollbar-thumb,
+    #viewerUi::-webkit-scrollbar-thumb{
+      background:linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.08));
+      border:2px solid transparent;
+      background-clip:padding-box;
+      border-radius:999px;
+    }
+
+    .slide::-webkit-scrollbar-thumb:hover,
+    #solutionList::-webkit-scrollbar-thumb:hover,
+    #viewerUi::-webkit-scrollbar-thumb:hover{
+      background:linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.11));
+      border:2px solid transparent;
+      background-clip:padding-box;
+    }
+
+    @keyframes ambientDrift{
+      from{transform:translate3d(0,0,0) scale(1)}
+      to{transform:translate3d(0,-14px,0) scale(1.04)}
+    }
+
+    @media (max-width: 1120px){
+      .slider-shell{
+        height:calc(100vh - 162px);
+        max-height:calc(100vh - 162px);
+        min-height:500px;
+      }
+
+      .slide{padding:22px 22px 28px}
+      .team-grid{grid-template-columns:repeat(2, minmax(0,1fr))}
+      #visualizerApp{grid-template-columns:1fr}
+      #viewerUi{border-right:none;border-bottom:1px solid rgba(255,255,255,.07)}
+      .footer-card{flex-direction:column;align-items:flex-start}
+    }
+
+    @media (max-width: 760px){
+      .container,.topbar-inner{width:min(calc(100% - 24px), var(--max))}
+      .topbar-inner{border-radius:24px;padding:12px 14px}
+      .nav-links{width:100%;justify-content:flex-start}
+      .slider-shell{
+        height:calc(100vh - 176px);
+        max-height:calc(100vh - 176px);
+        min-height:450px;
+      }
+      .slide{padding:18px 12px 22px}
+      .content-card{padding:18px}
+      .team-grid{grid-template-columns:1fr}
+      #canvas-wrap{min-height:620px}
+      #license{width:min(260px, calc(100% - 24px))}
+    }
+  </style>
+
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      },
+      svg: {
+        fontCache: 'global'
+      }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.155.0/build/three.module.js",
+      "three/examples/jsm/controls/OrbitControls.js": "https://unpkg.com/three@0.155.0/examples/jsm/controls/OrbitControls.js",
+      "three/examples/jsm/loaders/FontLoader.js": "https://unpkg.com/three@0.155.0/examples/jsm/loaders/FontLoader.js",
+      "three/examples/jsm/geometries/TextGeometry.js": "https://unpkg.com/three@0.155.0/examples/jsm/geometries/TextGeometry.js"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+  <div class="bg-noise"></div>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <span class="brand-mark"></span>
+        <span>Polycube Project</span>
+      </div>
+      <nav class="nav-links">
+        <button class="nav-link active" data-slide="0">Projekt</button>
+        <button class="nav-link" data-slide="1">Ansätze</button>
+        <button class="nav-link" data-slide="2">Team</button>
+        <a class="nav-link" href="#visualizer">Visualizer</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="slider-section" id="content-slides">
+      <div class="container">
+        <div class="slider-shell">
+          <div class="slides-track" id="slidesTrack">
+            <article class="slide" id="slide-project">
+              <div class="slide-inner">
+                <p class="section-label">Projekt</p>
+                <h2 class="section-title">Projektübersicht</h2>
+                <p class="section-lead">
+                  Dieser Bereich ist bewusst als gut editierbarer Textblock angelegt. Ihr könnt Überschriften, normalen Fließtext und LaTeX-Formeln direkt im HTML anpassen.
+                </p>
+                <div class="content-card">
+                  <div class="editable-note">Frei editierbarer Bereich mit LaTeX-Support</div>
+                  <div class="editable-block">
+                    <h3>Einführung</h3>
+                    <p>
+                      Hier könnt ihr den finalen Überblick über das Projekt eintragen: Was wurde untersucht, welche Fragestellung stand im Zentrum und warum sind die Ergebnisse relevant?
+                    </p>
+
+                    <h3>Kontext</h3>
+                    <p>
+                      Der Abschnitt eignet sich für eine verständliche Einführung in Polycubes, den Problemraum und die Zielsetzung eures abgeschlossenen Projekts. Achtet darauf, den Text eher für externe Besucher als für interne Projektmitglieder zu formulieren.
+                    </p>
+
+                    <h3>Formelbeispiel</h3>
+                    <p>
+                      Inline-Formeln funktionieren zum Beispiel so: $f(n)=n^3$. Auch abgesetzte Formeln werden unterstützt:
+                    </p>
+                    <p>
+                      $$
+                      P(x,y,z)=\sum_{i=1}^{n} a_i
+                      $$
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="slide" id="slide-approaches">
+              <div class="slide-inner">
+                <p class="section-label">Ansätze</p>
+                <h2 class="section-title">Methoden und Vorgehen</h2>
+                <p class="section-lead">
+                  Auch dieser Bereich ist als frei bearbeitbarer Präsentationstext gedacht. Ihr könnt hier Unterüberschriften für Suchstrategien, Validierung, Heuristiken oder Auswertung anlegen.
+                </p>
+                <div class="content-card">
+                  <div class="editable-note">Frei editierbarer Bereich mit Unterüberschriften</div>
+                  <div class="editable-block">
+                    <h3>Algorithmischer Ansatz</h3>
+                    <p>
+                      Beschreibt hier, wie ihr Lösungen erzeugt, gefiltert oder überprüft habt. Das kann von einer erschöpfenden Suche bis zu gezielten Konstruktionen oder Reduktionsideen reichen.
+                    </p>
+
+                    <h3>Validierung</h3>
+                    <p>
+                      Dieser Abschnitt kann erklären, wie Korrektheit sichergestellt wurde, wie der Visualizer in eurem Workflow eingesetzt wurde und an welchen Stellen visuelle Kontrolle besonders hilfreich war.
+                    </p>
+
+                    <h3>Weitere Struktur</h3>
+                    <h4>Teilansatz A</h4>
+                    <p>Kurzer beschreibender Text.</p>
+                    <h4>Teilansatz B</h4>
+                    <p>Kurzer beschreibender Text.</p>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="slide" id="slide-team">
+              <div class="slide-inner">
+                <p class="section-label">Team</p>
+                <h2 class="section-title">Projektteam</h2>
+                <p class="section-lead">
+                  Hier sind sieben Teamkarten vorgesehen. Bilder können später einfach ersetzt werden. Aktuell sind neutrale Platzhalter integriert.
+                </p>
+                <div class="team-grid">
+                  <article class="team-card">
+                    <div class="team-photo">1</div>
+                    <h3 class="team-name">Teammitglied 1</h3>
+                    <p class="team-role">Kurze Beschreibung in ein bis zwei Sätzen. Zum Beispiel Rolle im Projekt und Schwerpunkt im Arbeitsprozess.</p>
+                  </article>
+                  <article class="team-card">
+                    <div class="team-photo">2</div>
+                    <h3 class="team-name">Teammitglied 2</h3>
+                    <p class="team-role">Kurze Beschreibung in ein bis zwei Sätzen. Dieser Platzhalter kann später direkt ersetzt werden.</p>
+                  </article>
+                  <article class="team-card">
+                    <div class="team-photo">3</div>
+                    <h3 class="team-name">Teammitglied 3</h3>
+                    <p class="team-role">Kurze Beschreibung in ein bis zwei Sätzen. Beispielsweise mathemischer Fokus oder Implementierungsbeitrag.</p>
+                  </article>
+                  <article class="team-card">
+                    <div class="team-photo">4</div>
+                    <h3 class="team-name">Teammitglied 4</h3>
+                    <p class="team-role">Kurze Beschreibung in ein bis zwei Sätzen. Auch Bilder lassen sich hier später problemlos austauschen.</p>
+                  </article>
+                  <article class="team-card">
+                    <div class="team-photo">5</div>
+                    <h3 class="team-name">Teammitglied 5</h3>
+                    <p class="team-role">Kurze Beschreibung in ein bis zwei Sätzen. Der Stil bleibt bewusst ruhig und modern.</p>
+                  </article>
+                  <article class="team-card">
+                    <div class="team-photo">6</div>
+                    <h3 class="team-name">Teammitglied 6</h3>
+                    <p class="team-role">Kurze Beschreibung in ein bis zwei Sätzen. Dieser Bereich ist für eure finalen Teamdaten vorgesehen.</p>
+                  </article>
+                  <article class="team-card">
+                    <div class="team-photo">7</div>
+                    <h3 class="team-name">Teammitglied 7</h3>
+                    <p class="team-role">Kurze Beschreibung in ein bis zwei Sätzen. Platzhaltertext kann direkt durch finalen Text ersetzt werden.</p>
+                  </article>
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <div class="dot-nav" aria-label="Abschnittsnavigation">
+          <button class="active" data-slide="0" aria-label="Projekt"></button>
+          <button data-slide="1" aria-label="Ansätze"></button>
+          <button data-slide="2" aria-label="Team"></button>
+        </div>
+      </div>
+    </section>
+
+    <section class="viewer-section" id="visualizer">
+      <div class="container">
+        <div class="viewer-intro">
+          <p class="section-label" style="margin-bottom:10px">Visualizer</p>
+          <h2>Finale Lösungen interaktiv ansehen</h2>
+          <p>
+            Der Visualizer bleibt bewusst nah an der bisherigen Version. Für Besucher wurden nur die internen Projektfunktionen entfernt und eine automatische Kameraposition ergänzt, damit geladene Lösungen direkt mit gutem Überblick sichtbar sind.
+          </p>
+        </div>
+
+        <div class="viewer-shell">
+          <div id="visualizerApp">
+            <aside id="viewerUi">
+              <h3>Polycube Viewer</h3>
+              <div class="small">Linksklick: Würfel hervorheben</div>
+              <div class="small">Rechtsklick: Kamera verschieben</div>
+              <div class="small">Mausrad: Zoomen</div>
+
+              <hr>
+
+              <button id="btnLoadSolutions">Solutions laden</button>
+              <div id="solutionStatus">Noch keine Lösung geladen.</div>
+              <div id="solutionList" class="small"></div>
+            </aside>
+
+            <div id="canvas-wrap">
+              <div id="info" class="viewer-overlay">Drehen (Linksklick) / Zoomen / Verschieben (Rechtsklick)</div>
+              <div id="cubeCoords" class="viewer-overlay">Würfel: (x,y,z)</div>
+              <div id="cubeList">Würfel: -</div>
+
+              <div id="license">
+                <a href="https://github.com/kadsendino/polycube-solutions" target="_blank" rel="noreferrer">Polycube-Solutions</a>
+                <b> © 2025 by</b>
+                <p></p>
+                <a href="#" style="text-decoration:none;">Corbin Masur</a>,
+                <a href="#" style="text-decoration:none;">Daniel Yu</a>,
+                <a href="#" style="text-decoration:none;">Frederik Safner</a>,
+                <a href="#" style="text-decoration:none;">Lennard Scharein</a>,
+                <a href="#" style="text-decoration:none;">Maximilian Brömme</a>,
+                <a href="#" style="text-decoration:none;">Maximilian Prietzel</a>,
+                <a href="#" style="text-decoration:none;">Matthes Norden</a>
+
+                <p></p>
+                <b>is licensed under </b>
+                <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">CC BY 4.0</a>
+                <img src="https://mirrors.creativecommons.org/presskit/icons/cc.svg" alt="CC" style="max-width:1em;max-height:1em;margin-left:.2em;vertical-align:middle;">
+                <img src="https://mirrors.creativecommons.org/presskit/icons/by.svg" alt="BY" style="max-width:1em;max-height:1em;margin-left:.2em;vertical-align:middle;">
+              </div>
+
+              <canvas id="c"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <div class="footer-card">
+        <p>
+          Ruhige, veröffentlichungsfähige Projektseite mit horizontalem Inhaltsbereich, LaTeX-fähigen Textsektionen und dem bekannten Visualizer als abschließendem Hauptmodul.
+        </p>
+        <div class="footer-links">
+          <a href="#">Nach oben</a>
+          <a href="#visualizer">Visualizer</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module">
+    import * as THREE from "three";
+    import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+    import { FontLoader } from "three/examples/jsm/loaders/FontLoader.js";
+    import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry.js";
+
+    const slidesTrack = document.getElementById('slidesTrack');
+    const slideButtons = Array.from(document.querySelectorAll('[data-slide]'));
+    const slideJumpButtons = Array.from(document.querySelectorAll('[data-slide-jump]'));
+    const navButtons = Array.from(document.querySelectorAll('.nav-link[data-slide]'));
+    const dots = Array.from(document.querySelectorAll('.dot-nav button'));
+    let currentSlide = 0;
+
+    function scrollSlidesIntoView(){
+      const target = document.getElementById('content-slides');
+      const topbar = document.querySelector('.topbar');
+      const topbarHeight = topbar ? topbar.getBoundingClientRect().height : 0;
+      const targetTop = target.getBoundingClientRect().top + window.scrollY;
+      const desiredTop = Math.max(0, targetTop - topbarHeight - 18);
+      window.scrollTo({ top: desiredTop, behavior: 'smooth' });
+    }
+
+    function setSlide(index, smoothScroll = true){
+      currentSlide = Math.max(0, Math.min(2, index));
+      slidesTrack.style.transform = `translateX(-${currentSlide * 33.333333}%)`;
+      navButtons.forEach(btn => btn.classList.toggle('active', Number(btn.dataset.slide) === currentSlide));
+      dots.forEach(btn => btn.classList.toggle('active', Number(btn.dataset.slide) === currentSlide));
+      if(smoothScroll) scrollSlidesIntoView();
+      if(window.MathJax?.typesetPromise) window.MathJax.typesetPromise();
+    }
+
+    slideButtons.forEach(btn => btn.addEventListener('click', () => setSlide(Number(btn.dataset.slide))));
+    slideJumpButtons.forEach(btn => btn.addEventListener('click', () => setSlide(Number(btn.dataset.slideJump))));
+
+    let touchStartX = null;
+    const sliderShell = document.querySelector('.slider-shell');
+    sliderShell.addEventListener('touchstart', e => {
+      touchStartX = e.changedTouches[0].clientX;
+    }, { passive:true });
+    sliderShell.addEventListener('touchend', e => {
+      if(touchStartX === null) return;
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      if(Math.abs(dx) > 50){
+        if(dx < 0) setSlide(currentSlide + 1, false);
+        else setSlide(currentSlide - 1, false);
+      }
+      touchStartX = null;
+    }, { passive:true });
+
+    const canvas = document.querySelector('#c');
+    const cubeCoordsDiv = document.getElementById('cubeCoords');
+    const cubeListDiv = document.getElementById('cubeList');
+    const solutionListDiv = document.getElementById('solutionList');
+    const solutionStatusDiv = document.getElementById('solutionStatus');
+    const btnLoadSolutions = document.getElementById('btnLoadSolutions');
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x1b1b1b);
+
+    const camera = new THREE.PerspectiveCamera(60, 2, 0.1, 2000);
+    camera.position.set(10, 10, 14);
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+
+    const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
+    scene.add(hemi);
+
+    const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+    dir.position.set(5, 10, 7);
+    scene.add(dir);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+
+    const gridGroup = new THREE.Group();
+    scene.add(gridGroup);
+
+    let dims = { a: 8, b: 8, c: 8 };
+    const cubeMap = new Map();
+    const unitGeom = new THREE.BoxGeometry(1, 1, 1);
+    let highlightMesh = null;
+    const axisTexts = [];
+
+    function keyFor(x, y, z) {
+      return `${x},${y},${z}`;
+    }
+
+    function createGridHelpers() {
+      gridGroup.clear();
+      const { a, b, c } = dims;
+      const lineMaterial = new THREE.LineBasicMaterial({ color: 0x222222 });
+      const points = (x1, y1, z1, x2, y2, z2) => [new THREE.Vector3(x1, y1, z1), new THREE.Vector3(x2, y2, z2)];
+
+      for (let z = 0; z <= c; z++) {
+        gridGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points(0, 0, z, a, 0, z)), lineMaterial));
+      }
+      for (let x = 0; x <= a; x++) {
+        gridGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points(x, 0, 0, x, 0, c)), lineMaterial));
+      }
+
+      const borderMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
+      const edges = [
+        [0,0,0, a,0,0], [a,0,0, a,0,c], [a,0,c, 0,0,c], [0,0,c, 0,0,0],
+        [0,b,0, a,b,0], [a,b,0, a,b,c], [a,b,c, 0,b,c], [0,b,c, 0,b,0],
+        [0,0,0, 0,b,0], [a,0,0, a,b,0], [a,0,c, a,b,c], [0,0,c, 0,b,c]
+      ];
+      for (const e of edges) {
+        gridGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points(...e)), borderMaterial));
+      }
+    }
+
+    function removeAxisLabels() {
+      while (axisTexts.length) {
+        const mesh = axisTexts.pop();
+        scene.remove(mesh);
+        mesh.geometry?.dispose?.();
+        mesh.material?.dispose?.();
+      }
+    }
+
+    function addAxisLabels() {
+      removeAxisLabels();
+      const loader = new FontLoader();
+      loader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', font => {
+        const textSize = 0.4;
+        const textHeight = 0.05;
+        const offset = 0.5;
+        const createText = (char, color, pos) => {
+          const geo = new TextGeometry(char, { font, size: textSize, height: textHeight });
+          const mat = new THREE.MeshBasicMaterial({ color });
+          const mesh = new THREE.Mesh(geo, mat);
+          mesh.position.copy(pos);
+          scene.add(mesh);
+          axisTexts.push(mesh);
+        };
+
+        createText('X', 0xff0000, new THREE.Vector3(2 * offset, 0, -offset));
+        createText('Y', 0x00ff00, new THREE.Vector3(-offset, 2 * offset, -offset));
+        createText('Z', 0x0000ff, new THREE.Vector3(-offset, 0, 2 * offset));
+        createText('X', 0xff0000, new THREE.Vector3(dims.a + offset, 0, -offset));
+        createText('Y', 0x00ff00, new THREE.Vector3(-offset, dims.b + offset, -offset));
+        createText('Z', 0x0000ff, new THREE.Vector3(-offset, 0, dims.c + offset));
+      });
+    }
+
+    function updateCameraTarget() {
+      controls.target.set(dims.a / 2, dims.b / 2, dims.c / 2);
+      controls.update();
+    }
+
+    function setDimensions(a, b, c) {
+      dims = {
+        a: Math.max(1, Math.floor(a)),
+        b: Math.max(1, Math.floor(b)),
+        c: Math.max(1, Math.floor(c))
+      };
+      createGridHelpers();
+      addAxisLabels();
+      updateCameraTarget();
+    }
+
+    function addCube(x, y, z, color) {
+      x = Math.floor(x);
+      y = Math.floor(y);
+      z = Math.floor(z);
+      if (x < 0 || y < 0 || z < 0 || x >= dims.a || y >= dims.b || z >= dims.c) return null;
+
+      const k = keyFor(x, y, z);
+      if (cubeMap.has(k)) return cubeMap.get(k);
+
+      const mat = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(color),
+        roughness: 0.5,
+        metalness: 0.1,
+        emissive: 0x000000
+      });
+      const mesh = new THREE.Mesh(unitGeom, mat);
+      mesh.position.set(x + 0.5, y + 0.5, z + 0.5);
+      mesh.userData.pos = { x, y, z };
+      scene.add(mesh);
+      cubeMap.set(k, mesh);
+      return mesh;
+    }
+
+    function removeAllCubes() {
+      for (const mesh of cubeMap.values()) {
+        scene.remove(mesh);
+        mesh.material?.dispose?.();
+      }
+      cubeMap.clear();
+      highlightMesh = null;
+      cubeCoordsDiv.textContent = 'Würfel: (x,y,z)';
+      updateCubeList();
+    }
+
+    function updateCubeList() {
+      const cubes = Array.from(cubeMap.values())
+        .map(mesh => mesh.userData.pos)
+        .sort((a, b) => (a.x - b.x) || (a.y - b.y) || (a.z - b.z));
+
+      if (!cubes.length) {
+        cubeListDiv.innerHTML = 'Würfel: -';
+        return;
+      }
+
+      cubeListDiv.innerHTML = cubes.map(({x,y,z}) => `(${x}, ${y}, ${z})`).join('<br>');
+    }
+
+    function highlightCube(mesh) {
+      if (highlightMesh?.material) highlightMesh.material.emissive.setHex(0x000000);
+      highlightMesh = mesh;
+      if (mesh?.material) {
+        mesh.material.emissive.setHex(0xff0000);
+        const { x, y, z } = mesh.userData.pos;
+        cubeCoordsDiv.textContent = `Würfel: (${x}, ${y}, ${z})`;
+      } else {
+        cubeCoordsDiv.textContent = 'Würfel: (x,y,z)';
+      }
+    }
+
+    function fitCameraToCurrentContent() {
+      const box = new THREE.Box3();
+      let hasObjects = false;
+
+      cubeMap.forEach(mesh => {
+        box.expandByObject(mesh);
+        hasObjects = true;
+      });
+
+      if (!hasObjects) {
+        box.set(
+          new THREE.Vector3(0, 0, 0),
+          new THREE.Vector3(dims.a, dims.b, dims.c)
+        );
+      } else {
+        box.expandByPoint(new THREE.Vector3(0, 0, 0));
+        box.expandByPoint(new THREE.Vector3(dims.a, dims.b, dims.c));
+      }
+
+      const center = box.getCenter(new THREE.Vector3());
+      const size = box.getSize(new THREE.Vector3());
+      const maxDim = Math.max(size.x, size.y, size.z, 1);
+      const fov = THREE.MathUtils.degToRad(camera.fov);
+      const fitHeightDistance = (maxDim / 2) / Math.tan(fov / 2);
+      const fitWidthDistance = fitHeightDistance / camera.aspect;
+      const distance = 1.15 * Math.max(fitHeightDistance, fitWidthDistance);
+
+      const direction = new THREE.Vector3(1, 0.72, 1).normalize();
+      const newPosition = center.clone().add(direction.multiplyScalar(distance + maxDim * 0.45));
+
+      controls.target.copy(center);
+      camera.position.copy(newPosition);
+
+      const near = Math.max(0.1, distance / 100);
+      const far = Math.max(2000, distance * 12 + maxDim * 8);
+      camera.near = near;
+      camera.far = far;
+      camera.updateProjectionMatrix();
+      controls.update();
+    }
+
+    function loadArrayData(arr) {
+      if (!Array.isArray(arr) || arr.length < 1) throw new Error('Ungültiges Array');
+      removeAllCubes();
+
+      const [a, b, c] = arr[0];
+      setDimensions(a, b, c);
+
+      const colorDict = new Map();
+      const GOLDEN_ANGLE = 137.508;
+      const hsl = (h, s, l) => `hsl(${h}, ${s}%, ${l}%)`;
+
+      for (let i = 1; i < arr.length; i++) {
+        const item = arr[i];
+        if (!Array.isArray(item)) continue;
+        if (item[0] === 'ray') continue;
+
+        let x, y, z, color;
+        if (typeof item[3] === 'string') {
+          [x, y, z, color] = item;
+        } else {
+          const [id, xi, yi, zi] = item;
+          x = xi; y = yi; z = zi;
+          if (colorDict.has(id)) {
+            color = colorDict.get(id);
+          } else {
+            const hue = (colorDict.size * GOLDEN_ANGLE) % 360;
+            color = hsl(hue, 70, 50);
+            colorDict.set(id, color);
+          }
+        }
+        addCube(x, y, z, color || '#ffffff');
+      }
+
+      fitCameraToCurrentContent();
+      updateCubeList();
+    }
+
+    const SOLUTIONS_INDEX_URL = 'https://kadsendino.github.io/polycube-solutions/solutions/public_index.json';
+    const SOLUTIONS_BASE_URL = 'https://kadsendino.github.io/polycube-solutions/solutions/';
+
+    function normalizeSolutionItem(item) {
+      if (typeof item === 'string') {
+        return { title: item, filename: item };
+      }
+      if (item && typeof item === 'object' && item.filename) {
+        return {
+          title: item.title || item.filename,
+          filename: item.filename
+        };
+      }
+      return null;
+    }
+
+    async function loadSolutionsList() {
+      solutionStatusDiv.textContent = 'Lade verfügbare Lösungen ...';
+      solutionListDiv.innerHTML = '';
+
+      try {
+        const res = await fetch(SOLUTIONS_INDEX_URL);
+        if (!res.ok) throw new Error('index.json nicht gefunden');
+        const rawItems = await res.json();
+
+        if (!Array.isArray(rawItems) || rawItems.length === 0) {
+          solutionStatusDiv.textContent = 'Keine Lösungen gefunden.';
+          return;
+        }
+
+        const items = rawItems.map(normalizeSolutionItem).filter(Boolean);
+        if (items.length === 0) {
+          solutionStatusDiv.textContent = 'Keine gültigen Lösungseinträge gefunden.';
+          return;
+        }
+
+        solutionStatusDiv.textContent = `${items.length} Lösungen verfügbar. Wähle einen Eintrag aus.`;
+
+        items.forEach(item => {
+          const entry = document.createElement('button');
+          entry.className = 'solution-entry';
+          entry.textContent = item.title;
+          entry.title = item.filename;
+          entry.addEventListener('click', () => loadSolutionFromServer(item, entry));
+          solutionListDiv.appendChild(entry);
+        });
+      } catch (err) {
+        solutionStatusDiv.textContent = 'Fehler beim Laden der Lösungsliste: ' + err.message;
+      }
+    }
+
+    async function loadSolutionFromServer(solution, activeButton) {
+      const item = normalizeSolutionItem(solution);
+      if (!item) {
+        solutionStatusDiv.textContent = 'Ungültiger Lösungseintrag.';
+        return;
+      }
+
+      try {
+        solutionStatusDiv.textContent = `Lade ${item.title} ...`;
+        solutionListDiv.querySelectorAll('.solution-entry').forEach(el => el.classList.remove('active'));
+        if (activeButton) activeButton.classList.add('active');
+
+        const res = await fetch(SOLUTIONS_BASE_URL + item.filename);
+        if (!res.ok) throw new Error('Datei konnte nicht geladen werden');
+
+        const text = await res.text();
+        const arr = JSON.parse(text);
+        loadArrayData(arr);
+        solutionStatusDiv.textContent = `Aktive Lösung: ${item.title}`;
+      } catch (err) {
+        solutionStatusDiv.textContent = `Fehler beim Laden von ${item.title}: ${err.message}`;
+      }
+    }
+
+    btnLoadSolutions.addEventListener('click', loadSolutionsList);
+
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+
+    canvas.addEventListener('pointerdown', (e) => {
+      const rect = renderer.domElement.getBoundingClientRect();
+      pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(pointer, camera);
+      const intersects = raycaster.intersectObjects(Array.from(cubeMap.values()));
+
+      if (intersects.length > 0 && e.button === 0) {
+        highlightCube(intersects[0].object);
+      } else if (intersects.length === 0 && e.button === 0) {
+        highlightCube(null);
+      }
+    });
+
+    canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+    function resize() {
+      const wrap = document.getElementById('canvas-wrap');
+      const w = wrap.clientWidth;
+      const h = wrap.clientHeight;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      fitCameraToCurrentContent();
+    }
+
+    window.addEventListener('resize', resize);
+
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      axisTexts.forEach(t => t.lookAt(camera.position));
+      renderer.render(scene, camera);
+    }
+
+    setDimensions(dims.a, dims.b, dims.c);
+    resize();
+    animate();
+    setSlide(0, false);
+  </script>
+</body>
+</html>
