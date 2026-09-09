@@ -5,29 +5,36 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>SWP Polycubes</title>
   <style>
-    html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial}
+    :root{
+      --bg:#f5f5f5;
+      --panel:#ffffff;
+      --text:#222;
+      --muted:#777;
+      --border:#e2e2e2;
+      --hover:#f4f4f4;
+    }
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,"Segoe UI",Roboto,Arial;color:var(--text);background:var(--bg)}
     #app{display:grid;grid-template-columns:320px 1fr;height:100vh}
-    #ui{padding:12px;background:#111;color:#eee;overflow:auto}
+    #ui{padding:14px;background:var(--panel);border-right:1px solid var(--border);overflow:auto}
+    h3{margin:4px 0 10px;font-weight:600}
+    hr{border:none;border-top:1px solid var(--border);margin:12px 0}
     label{display:block;margin-top:8px;font-size:13px}
-    input[type=number], input[type=color], select, button, textarea{width:100%;box-sizing:border-box;padding:6px;margin-top:6px;border-radius:6px;border:1px solid #333;background:#222;color:#eee}
+    input[type=number], select, button{
+      width:100%;box-sizing:border-box;padding:6px 8px;margin-top:6px;border-radius:6px;
+      border:1px solid var(--border);background:#fff;color:var(--text);font:inherit;font-size:13px}
     button{cursor:pointer}
-    #canvas-wrap{position:relative;background:#222}
-    #c {width:100%; height:100%; display:block;}
-    #info{position:absolute;left:12px;top:12px;padding:8px;background:rgba(0,0,0,0.45);color:#fff;border-radius:6px;font-size:13px}
-    .small{font-size:12px;color:#bbb}
+    button:hover{background:var(--hover);border-color:#cfcfcf}
     .row{display:flex;gap:8px}
     .row > *{flex:1}
-    .hint{margin-top:8px;font-size:12px;color:#9aa}
+    .row .step{flex:0 0 44px;padding:6px 0}
+    .small{font-size:12px;color:var(--muted)}
+    #canvas-wrap{position:relative;background:var(--bg)}
+    #c {width:100%; height:100%; display:block;}
+    #info{position:absolute;left:12px;top:12px;padding:8px;background:rgba(255,255,255,0.85);color:var(--text);border:1px solid var(--border);border-radius:6px;font-size:13px}
 
-    .blink-green {
-      animation: blink-green 1s ease 0s infinite;
-    }
-
-    @keyframes blink-green {
-      0%   { border-color: #00ff00; box-shadow: 0 0 8px #00ff00; }
-      50%  { border-color: #ffffff; box-shadow: none; }
-      100% { border-color: #00ff00; box-shadow: 0 0 8px #00ff00; }
-    }
+    .sol-entry{padding:4px 6px;border-radius:4px;cursor:pointer;color:var(--text)}
+    .sol-entry:hover{background:var(--hover)}
+    .sol-entry.active{background:#e8efff;font-weight:600}
   </style>
 
   <script type="importmap">
@@ -46,116 +53,40 @@
     <div id="ui">
       <h3>Cube-Visualizer</h3>
 
-      <hr style="border:none;border-top:1px solid #222;margin:10px 0">
-
       <div class="small">Linksklick auf Würfel - Hervorheben.</div>
       <div class="small">Rechtsklick auf Würfel - Entfernen.</div>
-      <div class="small">
-        <font style="color: green">
-            <ul>
-              <li><b>#Update 11.12.2025</b></li>
-            </ul>
-        </font>
-      </div>
 
-      <hr style="border:none;border-top:1px solid #222;margin:10px 0">
+      <hr>
+      <label><b>Solutions</b></label>
+      <div id="solutionList" class="small" style="margin-top:8px; max-height:220px; overflow:auto;"></div>
 
-      <label>Array importieren</label>
-      <textarea id="arrayInput" rows="6">[[8,8,8],[0,0,0,"#ffffff"]]</textarea>
-      <button id="btnLoadArray">Array laden</button>
-
-      <hr style="border:none;border-top:1px solid #222;margin:10px 0">
-      <button id="btnExportCoords">Koordinaten exportieren</button> 
-
-      <hr style="border:none;border-top:1px solid #222;margin:10px 0">
-      <label><b>Solutions laden</b></label>
-      <button id="btnLoadSolutions">Solutions laden</button>
-      <div id="solutionList" class="small" style="margin-top:8px; max-height:150px; overflow:auto;"></div>
-
-
-
-      <hr style="border:none;border-top:1px solid #222;margin:10px 0">
-      <button id="btnMakeTransparent">Alle Würfel durchsichtig</button>
-      <button id="btnResetOpacity">Normal anzeigen</button>
-
-      <hr style="border:none;border-top:1px solid #222;margin:10px 0">
-      <label for="yThreshold">Y-Schwelle (ab hier Würfel unsichtbar):</label>
-      <input id="yThreshold" type="number" min="0" value="4" />
-      <button style="width: 31%; display: inline-block" id="btnHideMinus">-</button>
-      <button style="width: 31%; display: inline-block" id="btnHideAboveY">Set</button>
-      <button style="width: 31%; display: inline-block" id="btnHidePlus">+</button>
-      <button id="btnRestoreVisibility">Wiederherstellen</button>
-
-      <hr style="border:none;border-top:1px solid #222;margin:10px 0">
-      <label><b>Kamera-Anker (x, y, z)</b></label>
+      <hr>
+      <label><b>Slicing</b> (Achse &amp; Ebene)</label>
       <div class="row">
-        <input id="camX" type="number" value="4" />
-        <input id="camY" type="number" value="4" />
-        <input id="camZ" type="number" value="4" />
+        <select id="sliceAxis">
+          <option value="x">X</option>
+          <option value="y" selected>Y</option>
+          <option value="z">Z</option>
+        </select>
+        <button id="btnSliceMinus" class="step">−</button>
+        <input id="sliceIndex" type="number" min="0" value="4" />
+        <button id="btnSlicePlus" class="step">+</button>
       </div>
-      <button id="btnSetCamTarget">Anker setzen</button>
-      <button id="btnAutoCamTarget">Anker automatisiert ermitteln</button>
+      <button id="btnSliceShow">Nur diese Ebene anzeigen</button>
+      <button id="btnSliceHideAbove">Darüber ausblenden</button>
+      <button id="btnSliceRestore">Wiederherstellen</button>
 
-      <hr style="border:none;border-top:1px solid #222;margin:10px 0">
-
-      <label>Würfel hinzufügen (ganzzahlige Koordinaten)</label>
-      <div class="row">
-        <input id="cx" type="number" value="0" />
-        <input id="cy" type="number" value="0" />
-        <input id="cz" type="number" value="0" />
-      </div>
-      <label>Farbe</label>
-      <input id="color" type="color" value="#ff7755" />
-      <button id="btnAdd">Würfel hinzufügen</button>
-      <button id="btnClear">Alle Würfel entfernen</button>
-
-      
-      <hr style="border:none;border-top:1px solid #222;margin:10px 0">
-
-      <label>Dimensionen (a × b × c)</label>
-      <div class="row">
-        <input id="dimA" type="number" min="1" value="8" />
-        <input id="dimB" type="number" min="1" value="8" />
-        <input id="dimC" type="number" min="1" value="8" />
-      </div>
-      <button id="btnCreate">Gitter erstellen / zurücksetzen</button>
+      <hr>
+      <label><b>Export</b></label>
+      <button id="btnExportCoords">Koordinaten exportieren (JSON)</button>
+      <button id="btnExportJson">Aktuelles JSON exportieren</button>
     </div>
 
     <div id="canvas-wrap">
 
       <div id="info">Drehen (Linksklick) / Zoomen / Verschieben (Rechtsklick)</div>
-      <div id="cubeCoords" style="position:absolute;top:12px;right:12px;padding:6px;background:rgba(0,0,0,0.5);color:#fff;border-radius:6px;font-size:13px;">
+      <div id="cubeCoords" style="position:absolute;top:12px;right:12px;padding:6px;background:rgba(255,255,255,0.85);color:#222;border:1px solid #e2e2e2;border-radius:6px;font-size:13px;">
         Würfel: (x,y,z)
-      </div>
-      <div id="collisionLog" style="
-        position:absolute;
-        bottom:12px;
-        left:12px;
-        padding:6px;
-        background:rgba(0,0,0,0.5);
-        color:#ff5555;
-        border-radius:6px;
-        font-size:13px;
-        max-height:150px;
-        overflow:auto;
-        border:2px solid rgba(255,0,0,0); /* start transparent */
-        box-sizing:border-box;">
-        Kollisionen: -
-      </div>
-
-      <div id="cubeList" style="
-        position:absolute;
-        width: auto;
-        top: 50px;
-        right:12px;
-        padding:10px;
-        background:rgba(0,0,0,0.5);
-        color:#fff;
-        border-radius:6px;
-        font-size:13px;
-        max-height:200px;
-        overflow:auto;">
-        Würfel: -
       </div>
 
       <div id="license" style="
@@ -164,22 +95,23 @@
         bottom:12px;
         right:12px;
         padding:10px;
-        background:rgba(0,0,0,0.5);
-        color:#fff;
+        background:rgba(255,255,255,0.85);
+        color:#222;
+        border:1px solid #e2e2e2;
         border-radius:6px;
         font-size:13px;
         max-height:200px;
         overflow:auto;">
-        <a style="color:white;" href="https://github.com/kadsendino/polycube-solutions">Polycube-Solutions</a> <b>© 2025 by</b> <p></p> 
-            <a href="#" style="color:white; text-decoration: none;">Corbin Masur</a>,
-            <a href="#" style="color:white; text-decoration: none;">Daniel Yu</a>,
-            <a href="#" style="color:white; text-decoration: none;">Frederik Safner</a>,
-            <a href="#" style="color:white; text-decoration: none;">Lennard Scharein</a>,
-            <a href="#" style="color:white; text-decoration: none;">Maximilian Brömme</a>,
-            <a href="#" style="color:white; text-decoration: none;">Maximilian Prietzel</a>,
-            <a href="#" style="color:white; text-decoration: none;">Matthes Norden</a>
+        <a style="color:#222;" href="https://github.com/kadsendino/polycube-solutions">Polycube-Solutions</a> <b>© 2025 by</b> <p></p> 
+            <a href="#" style="color:#222; text-decoration: none;">Corbin Masur</a>,
+            <a href="#" style="color:#222; text-decoration: none;">Daniel Yu</a>,
+            <a href="#" style="color:#222; text-decoration: none;">Frederik Safner</a>,
+            <a href="#" style="color:#222; text-decoration: none;">Lennard Scharein</a>,
+            <a href="#" style="color:#222; text-decoration: none;">Maximilian Brömme</a>,
+            <a href="#" style="color:#222; text-decoration: none;">Maximilian Prietzel</a>,
+            <a href="#" style="color:#222; text-decoration: none;">Matthes Norden</a>
 
-            <p></p><b>is licensed under </b><a style="color: white" href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a><img src="https://mirrors.creativecommons.org/presskit/icons/cc.svg" alt="" style="max-width: 1em;max-height:1em;margin-left: .2em;"><img src="https://mirrors.creativecommons.org/presskit/icons/by.svg" alt="" style="max-width: 1em;max-height:1em;margin-left: .2em;">
+            <p></p><b>is licensed under </b><a style="color: #222" href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a><img src="https://mirrors.creativecommons.org/presskit/icons/cc.svg" alt="" style="max-width: 1em;max-height:1em;margin-left: .2em;"><img src="https://mirrors.creativecommons.org/presskit/icons/by.svg" alt="" style="max-width: 1em;max-height:1em;margin-left: .2em;">
         </div>
 
 
@@ -192,27 +124,10 @@
     import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 
     const canvas = document.querySelector('#c');
-    const btnCreate = document.querySelector('#btnCreate');
-    const btnAdd = document.querySelector('#btnAdd');
-    const btnClear = document.querySelector('#btnClear');
-    const dimAInput = document.querySelector('#dimA');
-    const dimBInput = document.querySelector('#dimB');
-    const dimCInput = document.querySelector('#dimC');
-    const cxInput = document.querySelector('#cx');
-    const cyInput = document.querySelector('#cy');
-    const czInput = document.querySelector('#cz');
-    const colorInput = document.querySelector('#color');
-    const arrayInput = document.querySelector('#arrayInput');
-    const btnLoadArray = document.querySelector('#btnLoadArray');
     const cubeCoordsDiv = document.getElementById('cubeCoords');
-    const collisionLogDiv = document.getElementById('collisionLog');
-    const cubeListDiv = document.getElementById('cubeList');
-
-    let collisions = []; // global
-
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x1b1b1b);
+    scene.background = new THREE.Color(0xf5f5f5);
 
     const camera = new THREE.PerspectiveCamera(60, 2, 0.1, 1000);
     camera.position.set(10, 10, 14);
@@ -220,7 +135,7 @@
     const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
     renderer.setPixelRatio(window.devicePixelRatio);
 
-    const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
+    const hemi = new THREE.HemisphereLight(0xffffff, 0x888888, 0.6);
     scene.add(hemi);
     const dir = new THREE.DirectionalLight(0xffffff, 0.8);
     dir.position.set(5,10,7);
@@ -270,23 +185,11 @@
 
     function keyFor(id,x,y,z){return `${id},${x},${y},${z}`}
 
-    const collisionCubes = new Set(); // Würfel, die gerade pulsieren
-    let pulseTime = 0;
-
-
-    function logCollisions(collisions) {
-        if (collisions.length === 0) {
-            collisionLogDiv.textContent = 'Kollisionen: keine';
-        } else {
-            collisionLogDiv.innerHTML = 'Kollisionen:<br>' + collisions.map(c => `(${c.x}, ${c.y}, ${c.z})`).join('<br>');
-        }
-    }
-
     function createGridHelpers(){
         gridGroup.clear();
         const {a,b,c} = dims;
 
-        const lineMaterial = new THREE.LineBasicMaterial({color:0x222222});
+        const lineMaterial = new THREE.LineBasicMaterial({color:0xbbbbbb});
 
         const points = (x1,y1,z1,x2,y2,z2) => [new THREE.Vector3(x1,y1,z1), new THREE.Vector3(x2,y2,z2)];
 
@@ -302,8 +205,8 @@
             gridGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points(x,y,0, x,y,c)), lineMaterial));
         }
 
-        // Weiße Umrandung des Quaders
-        const borderMaterial = new THREE.LineBasicMaterial({color: 0xffffff, linewidth: 2});
+        // Dunkle Umrandung des Quaders
+        const borderMaterial = new THREE.LineBasicMaterial({color: 0x444444, linewidth: 2});
         const edges = [
             // Untere Fläche
             [0,0,0, a,0,0],[a,0,0, a,0,c],[a,0,c,0,0,c],[0,0,c,0,0,0],
@@ -337,13 +240,6 @@
             return null;
         }
         const k = keyFor(id,x,y,z);
-        if(cubeMap.has(k)) {
-            if(collisions.some(c => c.x === x && c.y === y && c.z === z) == false){                
-                collisions.push({x,y,z});
-            }
-            collisionCubes.add(cubeMap.get(k)); // Würfel zum Pulsieren markieren
-        }
-        logCollisions(collisions);
         if(cubeMap.has(k)) return null;
 
         const mat = new THREE.MeshStandardMaterial({color:new THREE.Color(color), roughness:0.5, metalness:0.1, emissive:0x000000});
@@ -352,7 +248,6 @@
         mesh.userData.pos = {x,y,z};
         scene.add(mesh);
         cubeMap.set(k, mesh);
-        blinkButton();
         return mesh;
     }
 
@@ -372,47 +267,6 @@
         rays.forEach(line => scene.remove(line));
         rays.length = 0;
     }
-
-    function updateCubeList(){
-        const cubes = Array.from(cubeMap.values())
-            .map(mesh => mesh.userData.pos)
-            .sort((a,b) => (a.x-b.x) || (a.y-b.y) || (a.z-b.z));
-
-        console.log(cubes);
-
-        if(cubes.length === 0){
-            cubeListDiv.innerHTML = 'Würfel: -';
-            return;
-        }
-
-        cubeListDiv.innerHTML = ''; // reset
-        cubes.forEach(({x,y,z}) => {
-            const entry = document.createElement('div');
-            entry.style.display = 'flex';
-            entry.style.justifyContent = 'space-between';
-            entry.style.alignItems = 'center';
-            entry.style.marginBottom = '2px';
-            
-            const coordSpan = document.createElement('span');
-            coordSpan.textContent = `(${x}, ${y}, ${z})`;
-
-            const delBtn = document.createElement('button');
-            delBtn.textContent = 'X';
-            delBtn.style.marginLeft = '6px';
-            delBtn.style.cursor = 'pointer';
-            delBtn.style.width = '30px';
-            delBtn.onclick = () => {
-                removeCube(x,y,z);
-                updateCubeList(); // Liste aktualisieren
-            };
-
-            entry.appendChild(coordSpan);
-            entry.appendChild(delBtn);
-            cubeListDiv.appendChild(entry);
-        });
-    }
-
-
 
     function highlightCube(mesh){
         if(highlightMesh) {
@@ -435,13 +289,7 @@
         if(!m) return;
         scene.remove(m);
         cubeMap.delete(k);
-        collisionCubes.delete(m);
-        console.log(collisions);
-        collisions = collisions.filter(c => !(c.x === x && c.y === y && c.z === z));
-        console.log(collisions);
-        logCollisions(collisions);
         if(highlightMesh === m) highlightMesh = null;
-        updateCubeList(); // Liste aktualisieren
     }
 
 
@@ -451,90 +299,54 @@
             scene.remove(m);
         }
         cubeMap.clear();
-        collisionCubes.clear(); // Alle pulsierenden Würfel zurücksetzen
-        collisions.length = 0;
-        logCollisions(collisions);
         highlightMesh = null;
     }
 
-    
-    function setAllCubesOpacity(opacity = 0.3) {
+
+    // ---- Slicing: Ebene entlang einer Achse anzeigen / darüber ausblenden ----
+    const sliceAxisSel = document.getElementById('sliceAxis');
+    const sliceIndexInput = document.getElementById('sliceIndex');
+    const btnSliceShow = document.getElementById('btnSliceShow');
+    const btnSliceHideAbove = document.getElementById('btnSliceHideAbove');
+    const btnSliceRestore = document.getElementById('btnSliceRestore');
+    const btnSliceMinus = document.getElementById('btnSliceMinus');
+    const btnSlicePlus = document.getElementById('btnSlicePlus');
+
+    let lastSliceMode = 'single'; // merken, damit - / + im richtigen Modus weiterblättern
+
+    function applySlice(mode){
+        const axis = sliceAxisSel.value; // 'x' | 'y' | 'z'
+        const idx = parseInt(sliceIndexInput.value) || 0;
         cubeMap.forEach(mesh => {
-            if(mesh.material) {
-                mesh.material.transparent = true;
-                mesh.material.opacity = opacity;
-                mesh.material.needsUpdate = true;  // zwingt Renderer zum Update
-            }
+            const p = mesh.userData.pos[axis];
+            mesh.visible = (mode === 'single') ? (p === idx) : (p < idx);
         });
     }
 
-    function resetAllCubesOpacity() {
-        cubeMap.forEach(mesh => {
-            if(mesh.material) {
-                mesh.material.opacity = 1;
-                mesh.material.transparent = false;
-                mesh.material.needsUpdate = true; // zwingt Renderer zum Update
-            }
-        });
-    }
-
-
-    const btnMakeTransparent = document.getElementById('btnMakeTransparent');
-    const btnResetOpacity = document.getElementById('btnResetOpacity');
-
-    btnMakeTransparent.addEventListener('click', () => {
-        setAllCubesOpacity(0.3); // z. B. 30% sichtbar
+    btnSliceShow.addEventListener('click', () => {
+        lastSliceMode = 'single';
+        applySlice(lastSliceMode);
     });
 
-    btnResetOpacity.addEventListener('click', () => {
-        resetAllCubesOpacity();
+    btnSliceHideAbove.addEventListener('click', () => {
+        lastSliceMode = 'above';
+        applySlice(lastSliceMode);
     });
 
-
-
-    const yThresholdInput = document.getElementById('yThreshold');
-    const btnHideAboveY = document.getElementById('btnHideAboveY');
-    const btnHidePlus = document.getElementById('btnHidePlus');
-    const btnHideMinus = document.getElementById('btnHideMinus');
-    const btnRestoreVisibility = document.getElementById('btnRestoreVisibility');
-
-    // Unsichtbar ab Y
-    btnHideAboveY.addEventListener('click', () => {
-      
-        const yThreshold = parseInt(yThresholdInput.value) || 0;
-        cubeMap.forEach(mesh => {
-            mesh.visible = true;
-            if(mesh.userData.pos.y >= yThreshold) {
-                mesh.visible = false;
-            }
-        });
-    });
-
-    btnHidePlus.addEventListener('click', () => {
-        yThresholdInput.value = parseInt(yThresholdInput.value) + 1
-        cubeMap.forEach(mesh => {
-            mesh.visible = true;
-            if(mesh.userData.pos.y >= yThresholdInput.value) {
-                mesh.visible = false;
-            }
-        });
-    });
-
-    btnHideMinus.addEventListener('click', () => {
-        yThresholdInput.value = parseInt(yThresholdInput.value) - 1
-        cubeMap.forEach(mesh => {
-            mesh.visible = true;
-            if(mesh.userData.pos.y >= yThresholdInput.value) {
-                mesh.visible = false;
-            }
-        });
-    });
-
-    // Wiederherstellen
-    btnRestoreVisibility.addEventListener('click', () => {
+    btnSliceRestore.addEventListener('click', () => {
         cubeMap.forEach(mesh => {
             mesh.visible = true;
         });
+    });
+
+    btnSliceMinus.addEventListener('click', () => {
+        sliceIndexInput.value = Math.max(0, (parseInt(sliceIndexInput.value) || 0) - 1);
+        applySlice(lastSliceMode);
+    });
+
+    btnSlicePlus.addEventListener('click', () => {
+        sliceIndexInput.value = (parseInt(sliceIndexInput.value) || 0) + 1;
+        applySlice(lastSliceMode);
     });
 
     function exportCubeCoords() {
@@ -556,17 +368,16 @@
             return;
         }
 
-        // JSON erzeugen
-        const jsonStr = JSON.stringify(coords, null, 2);
+        downloadJson(JSON.stringify(coords, null, 2), "coords_hull.json");
+    }
+
+    function downloadJson(jsonStr, filename) {
+        // JSON als Datei herunterladen
         const blob = new Blob([jsonStr], { type: "application/json" });
-
-        console.log(coords.length)
-
-        // Download auslösen
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = "coords_hull.json";
+        a.download = filename;
 
         // Muss im DOM sein, damit Browser den Klick akzeptiert
         document.body.appendChild(a);
@@ -579,10 +390,47 @@
 
     document.getElementById("btnExportCoords").addEventListener("click", exportCubeCoords);
 
-    const btnLoadSolutions = document.getElementById("btnLoadSolutions");
+    // Zuletzt geladenes Solution-JSON exportieren
+    const btnExportJson = document.getElementById("btnExportJson");
+    btnExportJson.addEventListener("click", () => {
+        if (!currentSolutionText) {
+            alert("Keine Solution geladen!");
+            return;
+        }
+        try {
+            JSON.parse(currentSolutionText);
+        } catch (e) {
+            alert("Geladene Daten sind kein gültiges JSON: " + e.message);
+            return;
+        }
+        downloadJson(currentSolutionText, currentSolutionFile || "array_export.json");
+    });
+
     const solutionListDiv = document.getElementById("solutionList");
 
-    btnLoadSolutions.addEventListener("click", async () => {
+    let solutionFiles = [];
+    let currentSolutionFile = null;
+    let currentSolutionText = null;
+
+    function renderSolutionList() {
+        solutionListDiv.innerHTML = "";
+
+        if (solutionFiles.length === 0) {
+            solutionListDiv.textContent = "Noch keine Liste geladen.";
+            return;
+        }
+
+        solutionFiles.forEach(file => {
+            const entry = document.createElement("div");
+            entry.className = "sol-entry" + (file === currentSolutionFile ? " active" : "");
+            entry.textContent = file;
+            entry.addEventListener("click", () => loadSolutionFromServer(file));
+            solutionListDiv.appendChild(entry);
+        });
+    }
+
+    // Solutions-Liste beim Start automatisch laden
+    (async () => {
         try {
             const res = await fetch("https://kadsendino.github.io/polycube-solutions/solutions/index.json");
 
@@ -591,24 +439,13 @@
                 return;
             }
 
-            const files = await res.json();
-            solutionListDiv.innerHTML = "";
-
-            files.forEach(file => {
-                const entry = document.createElement("div");
-                entry.style.cursor = "pointer";
-                entry.style.padding = "4px 0";
-                entry.textContent = file;
-
-                entry.addEventListener("click", () => loadSolutionFromServer(file));
-                solutionListDiv.appendChild(entry);
-                console.log(entry.textContent)
-            });
+            solutionFiles = await res.json();
+            renderSolutionList();
 
         } catch (err) {
             solutionListDiv.textContent = "Fehler: " + err;
         }
-    });
+    })();
 
     async function loadSolutionFromServer(filename) {
         try {
@@ -620,12 +457,68 @@
             }
 
             const text = await res.text();
-            arrayInput.value = text;   // in dein Textfeld
-            btnLoadArray.click();      // deine existierende Importfunktion
+            currentSolutionFile = filename;
+            currentSolutionText = text;
+            loadArrayJson(text);
+            renderSolutionList();
 
         } catch (err) {
             alert("Fehler: " + err);
         }
+    }
+
+    // Solution-JSON in die Szene laden
+    function loadArrayJson(text) {
+        const arr = JSON.parse(text);
+        if (!Array.isArray(arr) || arr.length < 1) throw new Error('Ungültiges Array');
+
+        // Alles löschen
+        clearCubes();
+        clearRays();
+
+        // Dimensionen setzen
+        const [a,b,c] = arr[0];
+        setDimensions(a,b,c);
+
+        const color_dict = new Map();
+        const GOLDEN_ANGLE = 137.508;
+
+        //Hilfsfunktion umwandeln des Farbstrings aus hue
+        const hsl = (h, s, l) => `hsl(${h}, ${s}%, ${l}%)`;
+
+        // Würfel hinzufügen
+        for (let i = 1; i < arr.length; i++) {
+            let a,b,c,d;
+            [a,b,c,d] = arr[i];
+            let item = arr[i];
+
+            let id,x,y,z,color;
+
+            if(item[0] === 'ray') {
+                const [, start, end, color] = item;
+                addRay(start, end, color || 0xffff00);
+                continue; // Strahl behandelt, weiter zum nächsten Eintrag
+            }
+
+            if(typeof d === 'string' || d instanceof String){
+                [x,y,z,color] = [a,b,c,d];
+                id = 0;
+            }else{
+                [id,x,y,z] = [a,b,c,d];
+
+                if(color_dict.has(id)){
+                    color = color_dict.get(id);
+                }else{
+                    const dict_size = color_dict.size;
+                    const hue = (dict_size * GOLDEN_ANGLE) % 360;
+                    color = hsl(hue, 70, 50);
+                    color_dict.set(id, color);
+                }
+            }
+            addCube(id,x,y,z,color);
+        }
+
+        updateCameraTarget();
     }
 
 
@@ -659,138 +552,6 @@
 
 
     canvas.addEventListener('contextmenu', e => e.preventDefault());
-
-    btnCreate.addEventListener('click', ()=>{
-      const a = parseInt(dimAInput.value||8,10);
-      const b = parseInt(dimBInput.value||6,10);
-      const c = parseInt(dimCInput.value||4,10);
-      setDimensions(a,b,c);
-    });
-
-    btnAdd.addEventListener('click', ()=>{
-        const x = parseInt(cxInput.value||0,10);
-        const y = parseInt(cyInput.value||0,10);
-        const z = parseInt(czInput.value||0,10);
-        const col = colorInput.value || '#ff7755';
-        addCube(-1,x,y,z,col);
-
-        // Liste immer aktualisieren
-        updateCubeList();
-    });
-
-
-    btnClear.addEventListener('click', ()=>{
-        clearCubes();
-        updateCubeList();
-    });
-
-    btnLoadArray.addEventListener('click', () => {
-        try {
-            collisions.length = 0;
-
-            const arr = JSON.parse(arrayInput.value);
-            if (!Array.isArray(arr) || arr.length < 1) throw new Error('Ungültiges Array');
-
-            // Alles löschen
-            clearCubes();
-            clearRays();
-
-            // Dimensionen setzen
-            const [a,b,c] = arr[0];
-            setDimensions(a,b,c);
-            blinkButton();
-
-            const color_dict = new Map();
-            const GOLDEN_ANGLE = 137.508;
-
-            //Hilfsfunktion umwandeln des Farbstrings aus hue
-            const hsl = (h, s, l) => `hsl(${h}, ${s}%, ${l}%)`;
-
-            // Würfel hinzufügen mit Kollisionsprüfung
-            for (let i = 1; i < arr.length; i++) {
-                let a,b,c,d;
-                [a,b,c,d] = arr[i];
-                let item = arr[i];
-
-                let id,x,y,z,color;
-
-                if(item[0] === 'ray') {
-                    const [, start, end, color] = item;
-                    addRay(start, end, color || 0xffff00);
-                    continue; // Strahl behandelt, weiter zum nächsten Eintrag
-                }
-
-                if(typeof d === 'string' || d instanceof String){
-                    [x,y,z,color] = [a,b,c,d];
-                    id = 0;
-                }else{
-                    [id,x,y,z] = [a,b,c,d];
-
-                    if(color_dict.has(id)){
-                        color = color_dict.get(id);
-                    }else{
-                        const dict_size = color_dict.size;
-                        const hue = (dict_size * GOLDEN_ANGLE) % 360;
-                        color = hsl(hue, 70, 50);
-                        color_dict.set(id, color);
-                    }
-                }
-                const k = keyFor(x,y,z);
-                addCube(id,x,y,z,color);
-            }
-            logCollisions(collisions);
-
-            setCameraTargetToCubes();
-
-            // Liste unten rechts aktualisieren
-            updateCubeList();
-
-            console.log(cubeMap.length);
-
-        } catch (e) {
-            alert('Fehler beim Parsen des Arrays: ' + e.message);
-        }
-    });
-
-    //AUTOMATISIERTEN ANKER ERSTELLEN AUF MITTELWERT ALLER CUBES
-    function setCameraTargetToCubes() {
-        if(cubeMap.size === 0) return; // keine Würfel vorhanden
-
-        let sumX = 0, sumY = 0, sumZ = 0;
-        let count = 0;
-
-        cubeMap.forEach(mesh => {
-            const {x, y, z} = mesh.userData.pos;
-            sumX += x + 0.5; // +0.5, da Würfelmitte
-            sumY += y + 0.5;
-            sumZ += z + 0.5;
-            count++;
-        });
-
-        const avgX = sumX / count;
-        const avgY = sumY / count;
-        const avgZ = sumZ / count;
-
-        // Input-Felder aktualisieren
-        camXInput.value = avgX.toFixed(2);
-        camYInput.value = avgY.toFixed(2);
-        camZInput.value = avgZ.toFixed(2);
-
-        // Kameraanker setzen
-        setCameraTarget(avgX, avgY, avgZ);
-        blinkButtonRemove();
-    }
-
-    const btnAutoCamTarget = document.getElementById('btnAutoCamTarget');
-    btnAutoCamTarget.addEventListener('click', setCameraTargetToCubes);
-
-    //Automatisches Blinken bei Array Load für Ankersetzung
-    function blinkButton() {
-        document.getElementById('btnAutoCamTarget').classList.add('blink-green');
-    }
-    function blinkButtonRemove() {
-        document.getElementById('btnAutoCamTarget').classList.remove('blink-green'); // Animation entfernen
-    }
 
 
     function resize(){
@@ -830,14 +591,14 @@
             };
 
             // Ursprung
-            createText('X', 0xff0000, new THREE.Vector3(2*offset, 0, -offset));
-            createText('Y', 0x00ff00, new THREE.Vector3(-offset, 2*offset, -offset));
-            createText('Z', 0x0000ff, new THREE.Vector3(-offset, 0, 2*offset));
+            createText('X', 0xd40000, new THREE.Vector3(2*offset, 0, -offset));
+            createText('Y', 0x008a00, new THREE.Vector3(-offset, 2*offset, -offset));
+            createText('Z', 0x0033cc, new THREE.Vector3(-offset, 0, 2*offset));
 
             // Maximal-Ecke
-            createText('X', 0xff0000, new THREE.Vector3(dims.a + offset, 0, -offset));
-            createText('Y', 0x00ff00, new THREE.Vector3(-offset, dims.b + offset, -offset));
-            createText('Z', 0x0000ff, new THREE.Vector3(-offset, 0, dims.c + offset));
+            createText('X', 0xd40000, new THREE.Vector3(dims.a + offset, 0, -offset));
+            createText('Y', 0x008a00, new THREE.Vector3(-offset, dims.b + offset, -offset));
+            createText('Z', 0x0033cc, new THREE.Vector3(-offset, 0, dims.c + offset));
         });
     }
 
@@ -849,27 +610,8 @@
     function animate(){
         requestAnimationFrame(animate);
 
-
         updateCameraMovement();  // Bewegung vor OrbitControls
         controls.update();
-
-        // Pulsierendes Licht für Kollisionen
-        if(collisionCubes.size > 0){
-            pulseTime += 0.05; // Geschwindigkeit
-            const intensity = Math.abs(Math.sin(pulseTime)) * 1.5; 
-
-            collisionCubes.forEach(mesh => {
-                if (mesh.material) mesh.material.emissive.setRGB(intensity, 0, 0);
-            });
-
-            // Pulsierenden Rand für das Kollisionsfenster
-            const alpha = Math.abs(Math.sin(pulseTime)); // 0-1
-            collisionLogDiv.style.borderColor = `rgba(255,0,0,${alpha})`;
-            collisionLogDiv.style.boxShadow = `0 0 8px rgba(255,0,0,${alpha*0.5})`;
-        } else {
-            collisionLogDiv.style.borderColor = 'rgba(255,0,0,0)';
-            collisionLogDiv.style.boxShadow = 'none';
-        }
 
         axisTexts.forEach(t => t.lookAt(camera.position));
 
@@ -884,32 +626,6 @@
         controls.target.set(centerX, centerY, centerZ);
         controls.update();
     }
-
-    const camXInput = document.getElementById('camX');
-    const camYInput = document.getElementById('camY');
-    const camZInput = document.getElementById('camZ');
-    const btnSetCamTarget = document.getElementById('btnSetCamTarget');
-
-    function setCameraTarget(x, y, z) {
-        controls.target.set(x, y, z);
-        controls.update();
-    }
-
-    btnSetCamTarget.addEventListener('click', () => {
-        const x = parseFloat(camXInput.value) || 0;
-        const y = parseFloat(camYInput.value) || 0;
-        const z = parseFloat(camZInput.value) || 0;
-        setCameraTarget(x, y, z);
-    });
-
-    [camXInput, camYInput, camZInput].forEach(input => {
-        input.addEventListener('input', () => {
-            const x = parseFloat(camXInput.value) || 0;
-            const y = parseFloat(camYInput.value) || 0;
-            const z = parseFloat(camZInput.value) || 0;
-            setCameraTarget(x, y, z);
-        });
-    });
 
 
 
